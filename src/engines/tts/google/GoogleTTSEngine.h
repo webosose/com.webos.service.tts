@@ -22,6 +22,7 @@
 #include <TTSEngine.h>
 #include <TTSEngineFactory.h>
 #include <vector>
+#include <atomic>
 
 #include <grpc++/grpc++.h>
 
@@ -30,11 +31,14 @@
 
 #define DEFAULT_PITCH       1.0
 #define DEFAULT_SPEAK_RATE  0.0
+#define DEFAULT_DEADLINE_DURATION 1000
 
 using grpc::Channel;
 using grpc::ChannelCredentials;
 using grpc::ClientContext;
 using grpc::Status;
+using grpc::ClientAsyncResponseReader;
+using grpc::CompletionQueue;
 using google::cloud::texttospeech::v1::TextToSpeech;
 using google::cloud::texttospeech::v1::SynthesizeSpeechRequest;
 using google::cloud::texttospeech::v1::SynthesizeSpeechResponse;
@@ -69,6 +73,7 @@ private:
     double mSpeakRate;
     double mPitch;
     std::vector<std::string> mAvailableLanguages;
+    std::atomic<bool> mIsStop;
 };
 
 #endif /* SRC_ENGINES_GOOGLETTSENGINE_H_ */

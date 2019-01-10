@@ -30,8 +30,10 @@ using google::cloud::texttospeech::v1::AudioEncoding;
 #define AUDIO_FILE                    "/tmp/sttsResult.pcm"
 #define DEFAULT_LANGUAGE              "en-US"
 #define TTS_ENGINE_NAME               "google"
+#define GOOGLE_TTS_REQUEST_TAG        1
 
-GoogleTTSEngine::GoogleTTSEngine(double pitch, double speakRate) : TTSEngine(),mSpeakRate(speakRate),mPitch(pitch)
+GoogleTTSEngine::GoogleTTSEngine(double pitch, double speakRate) : TTSEngine(),mSpeakRate(speakRate),mPitch(pitch),
+     mIsStop(false)
 {
     mCredentials = grpc::GoogleDefaultCredentials();
 }
@@ -76,7 +78,9 @@ void GoogleTTSEngine::getSupportedLanguages(std::vector<std::string> &  vecLang)
 int GoogleTTSEngine::speak(std::string text, LSHandle* sh, std::string language)
 {
     LOG_TRACE("Entering function %s", __FUNCTION__);
-
+    if(mIsStop){
+        mIsStop = false;
+    }
     auto channel = grpc::CreateChannel(GOOGLE_APPLICATION_ENDPOINT, mCredentials);
 
     std::unique_ptr<TextToSpeech::Stub> textToSpeech = TextToSpeech::NewStub(channel);
@@ -96,9 +100,37 @@ int GoogleTTSEngine::speak(std::string text, LSHandle* sh, std::string language)
 
     SynthesizeSpeechResponse speechResponse;
     ClientContext context;
-
-    Status gStatus = textToSpeech->SynthesizeSpeech(&context, speechRequest, &speechResponse);
-
+    CompletionQueue grpcCallQueue;
+    Status gStatus;
+    std::unique_ptr<ClientAsyncResponseReader<SynthesizeSpeechResponse> > ttsRpc(textToSpeech->PrepareAsyncSynthesizeSpeech(&context, speechRequest, &grpcCallQueue));
+    ttsRpc->StartCall();
+    ttsRpc->Finish(&speechResponse, &gStatus, (void*)GOOGLE_TTS_REQUEST_TAG);
+    void* got_tag = nullptr;
+    bool ok = false;
+    do{
+        switch(grpcCallQueue.AsyncNext(&got_tag, &ok, std::chrono::system_clock::now() + std::chrono::milliseconds(DEFAULT_DEADLINE_DURATION))){
+            case grpc::CompletionQueue::SHUTDOWN:
+                LOG_DEBUG("While Waiting For Reply from Google...Got SHUTDOWN");
+                break;
+            case grpc::CompletionQueue::GOT_EVENT:
+                LOG_DEBUG("While Waiting For Reply from Google...Got EVENT");
+                break;
+            case grpc::CompletionQueue::TIMEOUT:
+                LOG_DEBUG("Waiting For Reply from Google...");
+                break;
+            default:
+                LOG_DEBUG("While Waiting For Reply from Google...Got NO CASE MATCH");
+                break;
+        }
+        if(mIsStop){
+            LOG_DEBUG("Got Stop While Waiting For Reply From Google");
+            break;
+        }
+    }while(!(ok && (got_tag == (void *)GOOGLE_TTS_REQUEST_TAG)));
+    if(mIsStop){
+        mIsStop = false;
+        return TTSErrors::SPEECH_DATA_CREATION_ERROR;
+    }
     if(gStatus.error_code() == grpc::StatusCode::OK)
     {
         std::string synthOutput = speechResponse.audio_content();
@@ -127,6 +159,7 @@ void GoogleTTSEngine::start()
 void GoogleTTSEngine::stop()
 {
     LOG_TRACE("Entering function %s", __FUNCTION__);
+    mIsStop = true;
 }
 
 void GoogleTTSEngine::init()

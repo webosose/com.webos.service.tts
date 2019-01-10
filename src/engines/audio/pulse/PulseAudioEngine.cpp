@@ -53,7 +53,9 @@ void PulseAudioEngine::pause()
 bool PulseAudioEngine::play()
 {
     LOG_TRACE("Entering function %s", __FUNCTION__);
-
+    if(mIsStopPlay){
+        mIsStopPlay = false;
+    }
     int error;
     int fd;
 

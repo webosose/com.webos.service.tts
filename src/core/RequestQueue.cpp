@@ -60,6 +60,7 @@ void RequestQueue::dispatchHandler()
         if (mRequestQueue.size() && !mQuit) {
             Request* op = std::move(mRequestQueue.front());
             LOG_DEBUG("%sProcessing request %d\n", mName.c_str(), op->getType());
+            popFront();
             lock.unlock();
 
             std::future<bool> fut = std::async(std::launch::async, [&op]() {return op->execute();});
@@ -67,7 +68,6 @@ void RequestQueue::dispatchHandler()
             LOG_DEBUG("%s Executed Request %d status :%d\n", mName.c_str(), op->getType(), ret);
 
             lock.lock();
-            popFront();
 
         }
     } while (!mQuit);
