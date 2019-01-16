@@ -1,0 +1,4 @@
+[D-BUS Service]
+Name=com.webos.service.tts
+Exec=@WEBOS_INSTALL_SBINDIR@/tts-service
+Type=dynamic

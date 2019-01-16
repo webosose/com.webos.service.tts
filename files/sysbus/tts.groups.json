@@ -1,0 +1,10 @@
+{
+"tts": {
+  "description": "Text to speech luna service",
+  "public": true
+},
+"tts.internal": {
+  "description": "Text to speech luna service",
+  "public": false
+}
+}

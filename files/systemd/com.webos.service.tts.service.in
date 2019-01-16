@@ -1,0 +1,12 @@
+[Unit]
+Description=webos - "%n"
+Requires=ls-hubd.service
+After=ls-hubd.service
+
+[Service]
+Type=simple
+OOMScoreAdjust=-500
+EnvironmentFile=-/var/systemd/system/env/com.webos.service.tts.env
+Environment=LD_PRELOAD=/usr/lib/libcurl.so.5
+ExecStart=/usr/sbin/tts-service
+#Restart=on-failure
