@@ -1,4 +1,4 @@
-// Copyright (c) 2018 LG Electronics, Inc.
+// Copyright (c) 2018-2019 LG Electronics, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -31,6 +31,7 @@ enum TTSErrors
     INIT_ERROR,
     INVALID_PARAM,
     TTS_INTERNAL_ERROR,
+    TTS_MEMORY_ERROR,
     PARAM_MISSING,
     LANG_NOT_SUPPORTED,
     COUNTRY_NOT_SUPPORTED,
@@ -65,6 +66,7 @@ static std::map<int, std::string> mTTSErrorTextTable =
         { INIT_ERROR, "Initialize error" },
         { INVALID_PARAM, "Invalid parameter" },
         { TTS_INTERNAL_ERROR, "Internal error" },
+        { TTS_MEMORY_ERROR, "Memory Allocation Error" },
         { PARAM_MISSING, "Required parameter is missing" },
         { LANG_NOT_SUPPORTED, "Not supported language" },
         { COUNTRY_NOT_SUPPORTED, "Not supported country" },

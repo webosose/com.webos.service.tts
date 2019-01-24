@@ -1,4 +1,4 @@
-// Copyright (c) 2018 LG Electronics, Inc.
+// Copyright (c) 2018-2019 LG Electronics, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -26,8 +26,6 @@ ParameterListManager::~ParameterListManager()
 {
     mClients.clear();
 }
-
-// TODO: Modify these functions according to requirement
 
 void ParameterListManager::addClient(TTSRequest* requestType, std::string appID, std::string msgID)
 {

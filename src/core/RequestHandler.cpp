@@ -47,7 +47,7 @@ bool RequestHandler::sendRequest(TTSRequest* request)
                 stopSpeech(); // send stop clear message
                 pRunningSpeakRequest->msgParameters->eStatus = TTS_MSG_STOP;
                 StatusHandler::GetInstance()->Notify(pRunningSpeakRequest->msgParameters, pRunningSpeakRequest->message);
-                LOG_DEBUG("Previous speak request is stopped");
+                LOG_DEBUG("Previous speak request is stopped\n");
               }
           }
           mSpeakRequestQueue.clearQueue();
@@ -56,11 +56,20 @@ bool RequestHandler::sendRequest(TTSRequest* request)
     }
     else if (request->getType() == STOP )
     {
+        StopRequest* ptrStopRequest = reinterpret_cast<StopRequest*>(request->getRequest());
+        std::string stopAppID = ptrStopRequest->sAppID;
+        std::string stopMsgID = ptrStopRequest->sMsgID;
+
         if( CheckToStopRunningSpeak(mEngineHandler->getRunningSpeakRequest(),request ) )
         {
              mControlRequestQueue.addRequest(request);
         }
-        mSpeakRequestQueue.removeRequest(request);
+        else
+        {
+            delete request;
+            request = nullptr;
+        }
+        mSpeakRequestQueue.removeRequest(stopAppID,stopMsgID);
     }
     else if (request->getType() == GET_LANGUAGES )
     {
@@ -126,7 +135,14 @@ bool RequestHandler::CheckToStopRunningSpeak(TTSRequest* pRunningRequest, TTSReq
 
 void RequestHandler::stopSpeech()
 {
-    StopRequest *stopRequest = new StopRequest;
-    TTSRequest* request =new TTSRequest(reinterpret_cast<RequestType*>(stopRequest), mEngineHandler);
+    StopRequest *stopRequest = new (std::nothrow)StopRequest;
+    if(stopRequest == nullptr){
+        return;
+    }
+    TTSRequest* request =new (std::nothrow)TTSRequest(reinterpret_cast<RequestType*>(stopRequest), mEngineHandler);
+    if(request == nullptr){
+        delete stopRequest;
+        return;
+    }
     mControlRequestQueue.addRequest(request);
 }

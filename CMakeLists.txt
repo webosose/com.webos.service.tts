@@ -66,11 +66,6 @@ pkg_check_modules(GLIB2 REQUIRED glib-2.0)
 include_directories(${GLIB2_INCLUDE_DIRS})
 webos_add_compiler_flags(ALL ${GLIB2_CFLAGS_OTHER})
 
-# TODO: Remove json-c inclusion once all json operations replaced with pbnjson
-pkg_check_modules(JSON REQUIRED json-c)
-include_directories(${JSON_INCLUDE_DIRS})
-webos_add_compiler_flags(ALL ${JSON_CFLAGS})
-
 pkg_check_modules(PBNJSON_CPP REQUIRED pbnjson_cpp)
 include_directories(${PBNJSON_CPP_INCLUDE_DIRS})
 webos_add_compiler_flags(ALL ${PBNJSON_CPP_CFLAGS_OTHER})

@@ -1,4 +1,4 @@
-// Copyright (c) 2018 LG Electronics, Inc.
+// Copyright (c) 2018-2019 LG Electronics, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -66,12 +66,9 @@ int main(int argc, char **argv)
         g_main_loop_unref(mainLoop);
         return EXIT_FAILURE;
     }
-
     g_main_loop_run(mainLoop);
-    ttsManager->deInit();
-
+      ttsManager.reset();
     g_main_loop_unref(mainLoop);
-    ttsManager.reset();
 
     return 0;
 }

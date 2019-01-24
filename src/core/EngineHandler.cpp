@@ -92,9 +92,6 @@ bool EngineHandler::handleRequest(TTSRequest* request)
             pSpeakRequest->msgParameters->eStatus = TTS_MSG_ERROR;
         }
 
-        if(pSpeakRequest->msgParameters->bSubscribed)
-             StatusHandler::GetInstance()->Notify(pSpeakRequest->msgParameters, pSpeakRequest->message);
-
         pSpeakRequest->replyCB(pSpeakRequest->msgParameters, pSpeakRequest->message);
 
        mRunningTTSRequest = nullptr;
@@ -114,8 +111,12 @@ void EngineHandler::loadEngine()
     LOG_TRACE("Entering function %s", __FUNCTION__);
 
     TTSConfigError err = TTSErrors::TTS_CONFIG_ERROR_NONE;
-    // TODO: Remove config handler dependency.
-    mConfigHandler = new TTSConfig;
+
+    mConfigHandler = new (std::nothrow)TTSConfig;
+    if(mConfigHandler == nullptr){
+        LOG_ERROR(MSGID_TTS_ERROR, 0, "Memory Allocation Failed TTSConfig");
+        return;
+    }
     err = mConfigHandler->readFile();
 
     if (err != TTSErrors::TTS_CONFIG_ERROR_NONE)
@@ -150,7 +151,6 @@ void EngineHandler::loadEngine()
     }
     LOG_DEBUG("AudioEngine %s Created", mAudioEngineName.asString().c_str());
 
-    // TODO: Decide if init required
     mTTSEngine->init();
 }
 
@@ -158,9 +158,12 @@ void EngineHandler::unloadEngine()
 {
     LOG_TRACE("Entering function %s", __FUNCTION__);
 
-    // TODO: Decide if deInit required
     if (mTTSEngine) {
-            mTTSEngine->deInit();
+            mTTSEngine.reset();
+    }
+    if(mConfigHandler){
+        delete mConfigHandler;
+        mConfigHandler = nullptr;
     }
 }
 
