@@ -1,4 +1,4 @@
-// Copyright (c) 2018 LG Electronics, Inc.
+// Copyright (c) 2018-2019 LG Electronics, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -20,6 +20,7 @@
 #define MSGID_ERROR_CALL                "ERROR_CALL"
 #define MSGID_MESSAGE_CALL              "MESSAGE_CALL"
 #define MSGID_TTS_ERROR                 "TTS_ERROR"
+#define MSGID_TTS_MEMORY_ERROR          "TTS_MEMORY_ERROR"
 #define MSGID_LUNA_ERROR_RESPONSE       "LUNA_ERROR_RESPONSE"
 #define MSGID_LUNA_SERVICE_WARNING      "LUNA_SERVICE_WARNING"
 

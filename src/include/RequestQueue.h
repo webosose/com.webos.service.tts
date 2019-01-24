@@ -33,7 +33,7 @@ public:
     void addRequest(Request* request);
     void start();
     void stop();
-    void removeRequest(TTSRequest* request);
+    void removeRequest(std::string sAppID, std::string sMsgID);
     void clearQueue();
 
 private:

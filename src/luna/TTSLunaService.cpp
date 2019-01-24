@@ -84,8 +84,14 @@ bool TTSLunaService::speak(LSMessage &message)
         return true;
     }
 
-    SpeakRequest *speakRequest = new SpeakRequest;
-    speakRequest->text_to_speak = requestObj["text"].asString();
+    SpeakRequest *speakRequest = new (std::nothrow)SpeakRequest;
+    if(speakRequest == nullptr){
+        const std::string errorStr = TTSErrors::getTTSErrorString(TTSErrors::TTS_MEMORY_ERROR);
+        LSUtils::respondWithError(request, errorStr, TTSErrors::TTS_MEMORY_ERROR);
+        LOG_ERROR(MSGID_TTS_MEMORY_ERROR, 0, "Failed To Allocatememory for SpeakRequest");
+        return true;
+    }
+    requestObj["text"].asString(speakRequest->text_to_speak);
     speakRequest->sh = this->get();
     speakRequest->replyCB = responseCallback;
     speakRequest->message = request;
@@ -105,7 +111,7 @@ bool TTSLunaService::speak(LSMessage &message)
         bool ret = addSubscription(lsHandle, &message, speakRequest->msgParameters->sMsgID);
     }
 
-    TTSRequest* ttsRequest = new TTSRequest(reinterpret_cast<RequestType*>(speakRequest), mEngineHandler);
+    TTSRequest* ttsRequest = new (std::nothrow) TTSRequest(reinterpret_cast<RequestType*>(speakRequest), mEngineHandler);
     retVal = mRequestHandler->sendRequest(ttsRequest);
 
     if(retVal)
@@ -114,8 +120,10 @@ bool TTSLunaService::speak(LSMessage &message)
         responseObj.put("returnValue", true);
         if(mParameterList->bSubscribed)
             responseObj.put("subscribed", true);
+        if(mParameterList->bFeedback == true)
+            responseObj.put("msgID", mParameterList->sMsgID);
 
-        //LSUtils::postToClient(request, responseObj);
+        LSUtils::postToClient(request, responseObj);
     }
     else
     {
@@ -166,11 +174,17 @@ bool TTSLunaService::stop(LSMessage &message)
    std::string applicationID = requestObj["appID"].asString();
    std::string MessageID = requestObj["msgID"].asString();
    bool bfadeOut = requestObj["fadeOut"].asBool();
-   StopRequest *stopRequest = new StopRequest;
+   StopRequest *stopRequest = new (std::nothrow) StopRequest;
+   if(stopRequest == nullptr){
+       return true;
+   }
    stopRequest->sAppID = applicationID;
    stopRequest->sMsgID = MessageID;
    stopRequest->fadeOut = bfadeOut;
-   TTSRequest* ttsRequest = new TTSRequest(reinterpret_cast<RequestType*>(stopRequest), mEngineHandler);
+   TTSRequest* ttsRequest = new (std::nothrow) TTSRequest(reinterpret_cast<RequestType*>(stopRequest), mEngineHandler);
+   if(ttsRequest == nullptr){
+       return true;
+   }
    retVal = mRequestHandler->sendRequest(ttsRequest);
    if(retVal)
    {
@@ -208,8 +222,21 @@ bool TTSLunaService::getAvailableLanguages(LSMessage &message)
     std::string payload;
     bool retVal = false;
 
-    GetLanguageRequest* ptrGetLanguageRequest = new GetLanguageRequest();
-    TTSRequest* ttsRequest = new TTSRequest(reinterpret_cast<RequestType*>(ptrGetLanguageRequest), mEngineHandler);
+    GetLanguageRequest* ptrGetLanguageRequest = new (std::nothrow)GetLanguageRequest();
+    if(ptrGetLanguageRequest == nullptr){
+        LOG_ERROR(MSGID_TTS_MEMORY_ERROR, 0, "Memory Allocation Error In GetLanguageRequest");
+        const std::string errorStr = TTSErrors::getTTSErrorString(TTSErrors::TTS_MEMORY_ERROR);
+        LSUtils::respondWithError(request, errorStr, TTSErrors::TTS_MEMORY_ERROR);
+        return true;
+    }
+    TTSRequest* ttsRequest = new (std::nothrow)TTSRequest(reinterpret_cast<RequestType*>(ptrGetLanguageRequest), mEngineHandler);
+    if(ttsRequest == nullptr){
+        delete ptrGetLanguageRequest;
+        LOG_ERROR(MSGID_TTS_MEMORY_ERROR, 0, "Memory Allocation Error In GetLanguageRequest");
+        const std::string errorStr = TTSErrors::getTTSErrorString(TTSErrors::TTS_MEMORY_ERROR);
+        LSUtils::respondWithError(request, errorStr, TTSErrors::TTS_MEMORY_ERROR);
+        return true;
+    }
     retVal = mRequestHandler->sendRequest(ttsRequest);
     if(retVal)
     {
@@ -220,6 +247,8 @@ bool TTSLunaService::getAvailableLanguages(LSMessage &message)
         LOG_DEBUG("Get Available Languages Request Not Sent\n");
         const std::string errorStr = TTSErrors::getTTSErrorString(TTSErrors::TTS_INTERNAL_ERROR);
         LSUtils::respondWithError(request, errorStr, TTSErrors::TTS_INTERNAL_ERROR);
+        delete ttsRequest;
+        ttsRequest = nullptr;
         return true;
     }
 
@@ -238,6 +267,8 @@ bool TTSLunaService::getAvailableLanguages(LSMessage &message)
 
     LSUtils::generatePayload(responseObj, payload);
     request.respond(payload.c_str());
+    delete ttsRequest;
+    ttsRequest == nullptr;
     return true;
 }
 
@@ -260,14 +291,36 @@ bool TTSLunaService::getStatus(LSMessage &message)
         return true;
     }
 
-    GetStatusRequest* getStatusRequest = new GetStatusRequest;
-    TTSStatus* pStatus = new TTSStatus;
-    getStatusRequest->pTTSStatus = pStatus;
+    GetStatusRequest* getStatusRequest = new (std::nothrow)GetStatusRequest;
+    if(getStatusRequest == nullptr){
+        LOG_ERROR(MSGID_TTS_MEMORY_ERROR, 0, "Memory Allocation Error In GetStatusRequest");
+        const std::string errorStr = TTSErrors::getTTSErrorString(TTSErrors::TTS_MEMORY_ERROR);
+        LSUtils::respondWithError(request, errorStr, TTSErrors::TTS_MEMORY_ERROR);
+        return true;
+    }
+    getStatusRequest->pTTSStatus = new (std::nothrow)TTSStatus;
+    if(getStatusRequest->pTTSStatus == nullptr){
+        delete getStatusRequest;
+        LOG_ERROR(MSGID_TTS_MEMORY_ERROR, 0, "Memory Allocation Error In GetStatusRequest");
+        const std::string errorStr = TTSErrors::getTTSErrorString(TTSErrors::TTS_MEMORY_ERROR);
+        LSUtils::respondWithError(request, errorStr, TTSErrors::TTS_MEMORY_ERROR);
+        return true;
+    }
     getStatusRequest->sh = this->get();
     getStatusRequest->replyCB = statusResponse;
     getStatusRequest->message = request;
 
-    TTSRequest* ptrTTSRequest = new TTSRequest(reinterpret_cast<RequestType*>(getStatusRequest), mEngineHandler);
+    TTSRequest* ptrTTSRequest = new (std::nothrow)TTSRequest(reinterpret_cast<RequestType*>(getStatusRequest), mEngineHandler);
+    if(ptrTTSRequest == nullptr){
+        delete getStatusRequest->pTTSStatus;
+        getStatusRequest->pTTSStatus=nullptr;
+        delete getStatusRequest;
+        getStatusRequest=nullptr;
+        LOG_ERROR(MSGID_TTS_MEMORY_ERROR,0, "Memory Allocation Error In GetStatusRequest");
+        const std::string errorStr = TTSErrors::getTTSErrorString(TTSErrors::TTS_MEMORY_ERROR);
+        LSUtils::respondWithError(request, errorStr, TTSErrors::TTS_MEMORY_ERROR);
+        return true;
+    }
     retVal = mRequestHandler->sendRequest(ptrTTSRequest);
 
     if(retVal)
@@ -299,6 +352,8 @@ bool TTSLunaService::getStatus(LSMessage &message)
                LOG_ERROR(MSGID_ERROR_CALL, 0, lserror.message);
                LSErrorFree(&lserror);
     }
+    delete ptrTTSRequest;
+    ptrTTSRequest=nullptr;
     return true;
 }
 
@@ -368,7 +423,7 @@ void TTSLunaService::addParameters(LSMessage &message)
 
     if(mParameterList != nullptr)
     {
-        mParameterList->sText = requestObj["text"].asString();
+        requestObj["text"].asString(mParameterList->sText);
         mParameterList->bFeedback = requestObj["feedback"].asBool();
         mParameterList->bSubscribed = LSMessageIsSubscription(&message);
         mParameterList->eStatus = TTS_MSG_ERROR;
@@ -516,5 +571,7 @@ bool TTSLunaService::handle_getSettings_callback(LSHandle *sh, LSMessage *messag
     pgetStatusRequest->pTTSStatus->ttsMenuLangStr = MenuLanghStr ;
     pgetStatusRequest->replyCB(pgetStatusRequest->pTTSStatus, pgetStatusRequest->message);
     LSMessageUnref(message);
+    delete pgetStatusRequest->pTTSStatus;
+    delete pgetStatusRequest;
     return true;
 }

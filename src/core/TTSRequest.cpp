@@ -27,7 +27,35 @@ TTSRequest::TTSRequest(RequestType *reqType, std::shared_ptr<EngineHandler> engi
 
 TTSRequest::~TTSRequest()
 {
-    if (mReqType) delete mReqType;
+    if(mReqType == NULL){
+        return;
+    }
+    if (mReqType->requestType == SPEAK)
+    {
+       SpeakRequest* ptrSpeakRequest = reinterpret_cast<SpeakRequest*>(mReqType);
+       if(ptrSpeakRequest->msgParameters){
+           delete ptrSpeakRequest->msgParameters;
+           ptrSpeakRequest->msgParameters = nullptr;
+       }
+       delete ptrSpeakRequest;
+    }
+    else if(mReqType->requestType == STOP)
+    {
+        StopRequest* ptrStopRequest = reinterpret_cast<StopRequest*>(mReqType);
+        delete ptrStopRequest;
+    }
+    else if(mReqType->requestType == GET_LANGUAGES)
+    {
+        GetLanguageRequest* ptrGetLanguageRequest = reinterpret_cast<GetLanguageRequest*>(mReqType);
+        ptrGetLanguageRequest->vecLanguages.clear();
+        delete ptrGetLanguageRequest;
+    }else if(mReqType->requestType == GET_STATUS){
+        LOG_DEBUG("For Stop Memory Leak handled Properly");
+    }else{
+        LOG_WARNING(MSGID_TTS_ERROR, 0, "Unhandled Request Type %d, See for memory Leak", mReqType->requestType);
+        delete mReqType;
+    }
+    mReqType = nullptr;
 }
 
 bool TTSRequest::execute()

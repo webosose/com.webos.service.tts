@@ -66,7 +66,8 @@ void RequestQueue::dispatchHandler()
             std::future<bool> fut = std::async(std::launch::async, [&op]() {return op->execute();});
             bool ret = fut.get();
             LOG_DEBUG("%s Executed Request %d status :%d\n", mName.c_str(), op->getType(), ret);
-
+            delete op;
+            op = nullptr;
             lock.lock();
 
         }
@@ -107,17 +108,9 @@ void RequestQueue::popFront()
     if (!mRequestQueue.empty()) mRequestQueue.erase(mRequestQueue.begin());
 }
 
-void RequestQueue::removeRequest(TTSRequest* request)
+void RequestQueue::removeRequest(std::string sAppID, std::string sMsgID)
 {
-    if(nullptr == request)
-    {
-      return;
-    }
-    StopRequest* ptrStopRequest = reinterpret_cast<StopRequest*>(request->getRequest());
-    std::string stopAppID = ptrStopRequest->sAppID;
-    std::string stopMsgID = ptrStopRequest->sMsgID;
-
-    if(stopMsgID.empty() && stopAppID.empty())
+    if(sMsgID.empty() && sAppID.empty())
     {
         clearQueue();
         return;
@@ -131,7 +124,7 @@ void RequestQueue::removeRequest(TTSRequest* request)
         std::string QueueAppID = ptrSpeakRequest->msgParameters->sAppID;
         std::string QueueMsgID = ptrSpeakRequest->msgParameters->sMsgID;
 
-        if( !stopMsgID.empty()&& ( QueueMsgID.compare(stopMsgID) == 0 ))
+        if( !sMsgID.empty()&& ( QueueMsgID.compare(sMsgID) == 0 ))
         {
             std::lock_guard<std::mutex> lock(mMutex);
             it = mRequestQueue.erase(it);
@@ -139,7 +132,7 @@ void RequestQueue::removeRequest(TTSRequest* request)
             ttsRequest = nullptr;
             break; //msgID is unique
         }
-        else if ( QueueAppID.compare(stopAppID) == 0)
+        else if ( QueueAppID.compare(sAppID) == 0)
         {
             std::lock_guard<std::mutex> lock(mMutex);
             {

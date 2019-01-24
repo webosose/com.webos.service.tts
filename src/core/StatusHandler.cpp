@@ -36,12 +36,12 @@ void StatusHandler::Notify(Parameters* paramList, LS::Message &message) {
 
 StatusHandler::StatusHandler() {
 
-    _obStatusObserver = new std::list<StatusObserver*>();
+    _obStatusObserver = new (std::nothrow)std::list<StatusObserver*>();
 
 }
 
 StatusHandler::StatusHandler(const StatusHandler& obj) {
-    _obStatusObserver = new std::list<StatusObserver *>();
+    _obStatusObserver = new (std::nothrow)std::list<StatusObserver *>();
     *_obStatusObserver = *obj._obStatusObserver;
 }
 
