@@ -39,6 +39,7 @@ public:
 private:
     void dispatchHandler();
     void popFront();
+    void setRequestStatus(Request* request);
     bool mQuit;
     std::string mName;
     std::thread mDispatcherThread;

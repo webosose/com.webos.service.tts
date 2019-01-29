@@ -35,6 +35,7 @@ using google::cloud::texttospeech::v1::AudioEncoding;
 GoogleTTSEngine::GoogleTTSEngine(double pitch, double speakRate) : TTSEngine(),mSpeakRate(speakRate),mPitch(pitch),
      mIsStop(false)
 {
+    setenv("GOOGLE_APPLICATION_CREDENTIALS", GOOGLE_ENV_FILE , 1);
     mCredentials = grpc::GoogleDefaultCredentials();
 }
 
@@ -50,7 +51,6 @@ void GoogleTTSEngine::getSupportedLanguages(std::vector<std::string> &  vecLang)
         vecLang = mAvailableLanguages;
         return;
     }
-
     auto channel = grpc::CreateChannel(GOOGLE_APPLICATION_ENDPOINT, mCredentials);
     std::unique_ptr<TextToSpeech::Stub> textToSpeech(TextToSpeech::NewStub(channel));
     ListVoicesRequest listVoicesRequest;
@@ -97,6 +97,7 @@ int GoogleTTSEngine::speak(std::string text, LSHandle* sh, std::string language)
 
     AudioConfig *audio_config = speechRequest.mutable_audio_config();
     audio_config->set_audio_encoding(AudioEncoding::LINEAR16);
+    audio_config->set_sample_rate_hertz(DEFAULT_SPEECH_SAMPLE_RATE);
 
     SynthesizeSpeechResponse speechResponse;
     ClientContext context;
@@ -136,9 +137,9 @@ int GoogleTTSEngine::speak(std::string text, LSHandle* sh, std::string language)
         std::string synthOutput = speechResponse.audio_content();
         std::ofstream outfile;
 
-        outfile.open(AUDIO_FILE);
+        outfile.open(AUDIO_FILE, std::ofstream::out | std::ofstream::binary);
         if(outfile.is_open())
-            outfile << synthOutput << std::endl;
+            outfile << synthOutput;
 
         outfile.close();
     }

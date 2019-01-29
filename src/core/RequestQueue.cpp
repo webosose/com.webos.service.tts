@@ -19,6 +19,7 @@
 #include <RequestQueue.h>
 #include <TTSLog.h>
 #include <TTSRequest.h>
+#include <StatusHandler.h>
 
 RequestQueue::RequestQueue(std::string name)
 {
@@ -127,6 +128,7 @@ void RequestQueue::removeRequest(std::string sAppID, std::string sMsgID)
         if( !sMsgID.empty()&& ( QueueMsgID.compare(sMsgID) == 0 ))
         {
             std::lock_guard<std::mutex> lock(mMutex);
+            setRequestStatus(ttsRequest);
             it = mRequestQueue.erase(it);
             delete ttsRequest;
             ttsRequest = nullptr;
@@ -136,6 +138,7 @@ void RequestQueue::removeRequest(std::string sAppID, std::string sMsgID)
         {
             std::lock_guard<std::mutex> lock(mMutex);
             {
+                setRequestStatus(ttsRequest);
                 it = mRequestQueue.erase(it);
                 delete ttsRequest;
                 ttsRequest = nullptr;
@@ -155,10 +158,18 @@ void RequestQueue::clearQueue()
    while (it != mRequestQueue.end())
    {
        Request* ttsRequest = *it;
+       setRequestStatus(ttsRequest);
        it = mRequestQueue.erase(it);
        if (nullptr != ttsRequest){
           delete ttsRequest;
           ttsRequest = nullptr;
        }
    }
+}
+
+void RequestQueue::setRequestStatus(Request* pRequest)
+{
+    SpeakRequest* ptrSpeakRequest = reinterpret_cast<SpeakRequest*>(pRequest->getRequest());
+    ptrSpeakRequest->msgParameters->eStatus = TTS_MSG_CANCEL;
+    StatusHandler::GetInstance()->Notify(ptrSpeakRequest->msgParameters, ptrSpeakRequest->message);
 }

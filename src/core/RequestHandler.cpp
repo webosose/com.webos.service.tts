@@ -46,7 +46,6 @@ bool RequestHandler::sendRequest(TTSRequest* request)
              {
                 stopSpeech(); // send stop clear message
                 pRunningSpeakRequest->msgParameters->eStatus = TTS_MSG_STOP;
-                StatusHandler::GetInstance()->Notify(pRunningSpeakRequest->msgParameters, pRunningSpeakRequest->message);
                 LOG_DEBUG("Previous speak request is stopped\n");
               }
           }
@@ -144,5 +143,6 @@ void RequestHandler::stopSpeech()
         delete stopRequest;
         return;
     }
+
     mControlRequestQueue.addRequest(request);
 }
