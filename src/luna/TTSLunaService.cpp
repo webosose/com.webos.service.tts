@@ -25,6 +25,8 @@
 #define GET_VOLUME  "luna://com.webos.service.audio/master/getVolume"
 
 const std::string service_name = "com.webos.service.tts";
+const double dTTSPitch = 0.0;
+const double dTTSSpeechRate = 0.0;
 
 LSHandle* TTSLunaService::lsHandle = nullptr;
 
@@ -117,12 +119,14 @@ bool TTSLunaService::speak(LSMessage &message)
     if(retVal)
     {
         LOG_DEBUG("Speak Request Complete\n");
+        responseObj.put("language", mParameterList->sLangStr);
         responseObj.put("returnValue", true);
         if(mParameterList->bSubscribed)
             responseObj.put("subscribed", true);
-        if(mParameterList->bFeedback == true)
+        else
+            responseObj.put("subscribed", false);
+        if(mParameterList->bFeedback == true || mParameterList->bSubscribed == true)
             responseObj.put("msgID", mParameterList->sMsgID);
-
         LSUtils::postToClient(request, responseObj);
     }
     else
@@ -290,7 +294,6 @@ bool TTSLunaService::getStatus(LSMessage &message)
         LSUtils::respondWithError(request, errorStr, TTSErrors::INVALID_JSON_FORMAT);
         return true;
     }
-
     GetStatusRequest* getStatusRequest = new (std::nothrow)GetStatusRequest;
     if(getStatusRequest == nullptr){
         LOG_ERROR(MSGID_TTS_MEMORY_ERROR, 0, "Memory Allocation Error In GetStatusRequest");
@@ -333,6 +336,10 @@ bool TTSLunaService::getStatus(LSMessage &message)
         const std::string errorStr = TTSErrors::getTTSErrorString(TTSErrors::TTS_INTERNAL_ERROR);
         LSUtils::respondWithError(request, errorStr, TTSErrors::TTS_INTERNAL_ERROR);
     }
+
+    getStatusRequest->pTTSStatus->pitch = dTTSPitch;
+    getStatusRequest->pTTSStatus->speechRate = dTTSSpeechRate;
+
 
     LSError lserror;
     LSErrorInit(&lserror);
@@ -382,16 +389,18 @@ void TTSLunaService::responseCallback(Parameters* paramList, LS::Message& messag
     responseObj.put("returnValue", true);
 
     feedback = paramList->bFeedback;
-    if(feedback == true)
-    {
-        responseObj.put("msgID", paramList->sMsgID);
-    }
 
     subscribed = paramList->bSubscribed;
+    if( feedback == true || subscribed == true )
+    {
+       responseObj.put("msgID", paramList->sMsgID);
+    }
+
     if(subscribed)
     {
         std::string messageStatus = GET_MSG_STATUS_TEXT(paramList->eStatus);
         responseObj.put("msgStatus", messageStatus);
+        responseObj.put("subscribed", false);
 
         LSError lserror;
         LSErrorInit(&lserror);
@@ -435,7 +444,7 @@ void TTSLunaService::addParameters(LSMessage &message)
             mParameterList->sMsgID = LSUtils::generateRandomString(12);
         }
 
-        mParameterList->sLangStr = "";
+        mParameterList->sLangStr = "en-US";
         std::string sInputLang;
         sInputLang = requestObj["language"].asString();
 

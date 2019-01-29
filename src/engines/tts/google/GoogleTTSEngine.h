@@ -29,9 +29,11 @@
 #include <google/cloud/texttospeech/v1/cloud_tts.pb.h>
 #include <google/cloud/texttospeech/v1/cloud_tts.grpc.pb.h>
 
-#define DEFAULT_PITCH       1.0
-#define DEFAULT_SPEAK_RATE  0.0
+#define DEFAULT_PITCH       0.0
+#define DEFAULT_SPEAK_RATE  1.0
 #define DEFAULT_DEADLINE_DURATION 1000
+#define GOOGLE_ENV_FILE "/etc/google/google_tts_credentials.json"
+#define DEFAULT_SPEECH_SAMPLE_RATE 22050
 
 using grpc::Channel;
 using grpc::ChannelCredentials;

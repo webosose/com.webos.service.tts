@@ -67,7 +67,7 @@ int main(int argc, char **argv)
         return EXIT_FAILURE;
     }
     g_main_loop_run(mainLoop);
-      ttsManager.reset();
+    ttsManager.reset();
     g_main_loop_unref(mainLoop);
 
     return 0;

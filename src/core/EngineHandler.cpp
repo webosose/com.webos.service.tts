@@ -81,7 +81,8 @@ bool EngineHandler::handleRequest(TTSRequest* request)
 
         if(audioRet)
         {
-            pSpeakRequest->msgParameters->eStatus = TTS_MSG_DONE;
+            if( TTS_MSG_PLAY ==  pSpeakRequest->msgParameters->eStatus )
+               pSpeakRequest->msgParameters->eStatus = TTS_MSG_DONE;
             meTTSTaskStatus = TTS_TASK_DONE;
         }
         else
@@ -91,14 +92,19 @@ bool EngineHandler::handleRequest(TTSRequest* request)
             pSpeakRequest->msgParameters->eTaskStatus = TTS_TASK_ERROR;
             pSpeakRequest->msgParameters->eStatus = TTS_MSG_ERROR;
         }
-
-        pSpeakRequest->replyCB(pSpeakRequest->msgParameters, pSpeakRequest->message);
+        if(pSpeakRequest->msgParameters->bSubscribed)
+            pSpeakRequest->replyCB(pSpeakRequest->msgParameters, pSpeakRequest->message);
 
        mRunningTTSRequest = nullptr;
     }
     else if(request->getType() == STOP)
     {
         LOG_DEBUG("Handling Stop Request\n");
+        if(nullptr != mRunningTTSRequest)
+        {
+            SpeakRequest* pRunningSpeakRequest = reinterpret_cast<SpeakRequest*>(mRunningTTSRequest->getRequest());
+            pRunningSpeakRequest->msgParameters->eStatus = TTS_MSG_STOP;
+        }
         mTTSEngine->stop();
         mAudioEngine->stop();
     }
