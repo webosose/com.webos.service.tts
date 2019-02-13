@@ -1,4 +1,4 @@
-// Copyright (c) 2018 LG Electronics, Inc.
+// Copyright (c) 2018-2019 LG Electronics, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@
 #ifndef SRC_INCLUDE_TTSLUNAUTILS_H_
 #define SRC_INCLUDE_TTSLUNAUTILS_H_
 
+#include <random>
 #include <string>
 #include <pbnjson.hpp>
 #include <luna-service2/lunaservice.hpp>
@@ -83,18 +84,23 @@ namespace LSUtils
 {
 inline std::string generateRandomString( size_t length )
 {
-    auto randchar = []() -> char
-    {
-        const char charset[] =
-        "0123456789"
-        "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-        "abcdefghijklmnopqrstuvwxyz";
-        const size_t max_index = (sizeof(charset) - 1);
-        return charset[ rand() % max_index ];
+    std::string buffer;
+    buffer.resize(length + 1);
+
+    std::random_device rd;
+
+    const char alphanumeric[] = {
+        "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
     };
-    std::string str(length,0);
-    std::generate_n( str.begin(), length, randchar );
-    return str;
+
+    std::mt19937 eng(rd());
+    std::uniform_int_distribution<> distr(0, (unsigned)strlen(alphanumeric));
+
+    for (int idx = 0; idx < length; idx++)
+        buffer[idx] = alphanumeric[distr(eng)];
+
+    buffer[length] = '\0';
+    return buffer;
 }
 
 inline bool generatePayload(const pbnjson::JValue &object, std::string &payload)
