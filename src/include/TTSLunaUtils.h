@@ -85,7 +85,7 @@ namespace LSUtils
 inline std::string generateRandomString( size_t length )
 {
     std::string buffer;
-    buffer.resize(length + 1);
+    buffer.resize(length);
 
     std::random_device rd;
 
@@ -99,7 +99,6 @@ inline std::string generateRandomString( size_t length )
     for (int idx = 0; idx < length; idx++)
         buffer[idx] = alphanumeric[distr(eng)];
 
-    buffer[length] = '\0';
     return buffer;
 }
 
