@@ -383,6 +383,7 @@ void TTSLunaService::responseCallback(Parameters* paramList, LS::Message& messag
     {
         const std::string errorStr = TTSErrors::getTTSErrorString(TTSErrors::LANG_NOT_SUPPORTED);
         LSUtils::respondWithError(message, errorStr, TTSErrors::LANG_NOT_SUPPORTED);
+        return;
     }
 
     pbnjson::JValue responseObj = pbnjson::Object();
@@ -438,6 +439,7 @@ void TTSLunaService::addParameters(LSMessage &message)
         mParameterList->eStatus = TTS_MSG_ERROR;
         mParameterList->sAppID = requestObj["appID"].asString();
         mParameterList->eTaskStatus = TTS_TASK_NOT_READY;
+        mParameterList->eLang = LANG_ENUS;
 
         if(mParameterList->bSubscribed || mParameterList->bFeedback)
         {
