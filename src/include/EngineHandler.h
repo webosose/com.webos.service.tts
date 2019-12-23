@@ -26,6 +26,7 @@
 class TTSRequest;
 class EngineHandler
 {
+
 public:
     EngineHandler();
     virtual ~EngineHandler();
@@ -40,6 +41,8 @@ public:
     void getStatusInfo(TTSRequest* pTTSRequest);
     void getLanguages(TTSRequest* pTTSRequest);
 private:
+    EngineHandler & operator = (const EngineHandler &rh)= delete;
+    EngineHandler (const EngineHandler &rh)= delete;
     std::shared_ptr<TTSEngine> mTTSEngine;
     std::shared_ptr<AudioEngine> mAudioEngine;
     TTSConfig* mConfigHandler;
