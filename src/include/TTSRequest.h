@@ -32,6 +32,8 @@ public:
 
 private:
     RequestType* mReqType;
+    TTSRequest & operator = (const TTSRequest &rh)= delete;
+    TTSRequest (const TTSRequest &rh)= delete;
 
     std::shared_ptr<EngineHandler> mEngineHandler;
 };

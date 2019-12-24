@@ -102,6 +102,8 @@ bool TTSLunaService::speak(LSMessage &message)
     {
         const std::string errorStr = TTSErrors::getTTSErrorString(TTSErrors::INPUT_TEXT_EMPTY);
         LSUtils::respondWithError(request, errorStr, TTSErrors::INPUT_TEXT_EMPTY);
+        delete speakRequest;
+        speakRequest = nullptr;
         return true;
     }
 
@@ -187,6 +189,8 @@ bool TTSLunaService::stop(LSMessage &message)
    stopRequest->fadeOut = bfadeOut;
    TTSRequest* ttsRequest = new (std::nothrow) TTSRequest(reinterpret_cast<RequestType*>(stopRequest), mEngineHandler);
    if(ttsRequest == nullptr){
+       delete stopRequest;
+       stopRequest = nullptr;
        return true;
    }
    retVal = mRequestHandler->sendRequest(ttsRequest);
