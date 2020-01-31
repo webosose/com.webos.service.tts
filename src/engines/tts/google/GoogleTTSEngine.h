@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2019 LG Electronics, Inc.
+// Copyright (c) 2018-2020 LG Electronics, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -31,7 +31,7 @@
 
 #define DEFAULT_PITCH       0.0
 #define DEFAULT_SPEAK_RATE  1.0
-#define DEFAULT_DEADLINE_DURATION 1000
+#define DEFAULT_DEADLINE_DURATION 2000
 #define GOOGLE_ENV_FILE "/etc/google/google_tts_credentials.json"
 #define DEFAULT_SPEECH_SAMPLE_RATE 22050
 
