@@ -160,10 +160,8 @@ void RequestQueue::clearQueue()
        Request* ttsRequest = *it;
        setRequestStatus(ttsRequest);
        it = mRequestQueue.erase(it);
-       if (nullptr != ttsRequest){
-          delete ttsRequest;
-          ttsRequest = nullptr;
-       }
+       delete ttsRequest;
+       ttsRequest = nullptr;
    }
 }
 

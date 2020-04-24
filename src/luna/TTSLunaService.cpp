@@ -276,7 +276,7 @@ bool TTSLunaService::getAvailableLanguages(LSMessage &message)
     LSUtils::generatePayload(responseObj, payload);
     request.respond(payload.c_str());
     delete ttsRequest;
-    ttsRequest == nullptr;
+    ttsRequest = nullptr;
     return true;
 }
 
@@ -350,7 +350,7 @@ bool TTSLunaService::getStatus(LSMessage &message)
     if (!LSCallOneReply( TTSLunaService::lsHandle,
                GET_VOLUME,
                R"({})",
-               handle_getVolume_callback, getStatusRequest, nullptr ,&lserror));
+               handle_getVolume_callback, getStatusRequest, nullptr ,&lserror))
     {
                LOG_ERROR(MSGID_ERROR_CALL, 0, lserror.message);
                LSErrorFree(&lserror);
