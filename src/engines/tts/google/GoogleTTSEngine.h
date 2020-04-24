@@ -31,7 +31,7 @@
 
 #define DEFAULT_PITCH       0.0
 #define DEFAULT_SPEAK_RATE  1.0
-#define DEFAULT_DEADLINE_DURATION 2000
+#define DEFAULT_DEADLINE_DURATION 1000
 #define GOOGLE_ENV_FILE "/etc/google/google_tts_credentials.json"
 #define DEFAULT_SPEECH_SAMPLE_RATE 22050
 

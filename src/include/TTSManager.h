@@ -37,8 +37,8 @@ public:
 private:
 
     GMainLoop* mainLoop;
-    TTSLunaService *mLunaService;
-    RequestHandler *mRequestHandler;
+    std::unique_ptr<TTSLunaService> mLunaService;
+    std::unique_ptr<RequestHandler> mRequestHandler;
     std::shared_ptr<EngineHandler> mEngineHandler;
 };
 

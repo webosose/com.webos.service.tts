@@ -68,6 +68,7 @@ bool PulseAudioEngine::play()
     if (dup2(fd, STDIN_FILENO) < 0)
     {
         LOG_DEBUG("Error: File duplication failed: %s", strerror(errno));
+        close(fd);
         return false;
     }
     close(fd);

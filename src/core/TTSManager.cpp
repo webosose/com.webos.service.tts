@@ -46,13 +46,20 @@ bool TTSManager::init(GMainLoop *mainLoop)
         return false;
     }
 
-    mRequestHandler = new (std::nothrow) RequestHandler(mEngineHandler);
+    mRequestHandler = std::unique_ptr<RequestHandler>(new RequestHandler(mEngineHandler));
     if(mRequestHandler == nullptr)
         return false;
-
-    mLunaService = new (std::nothrow) TTSLunaService(mRequestHandler, mEngineHandler);
-    if(mLunaService == nullptr)
+    try
+    {
+        mLunaService = std::unique_ptr<TTSLunaService>(new TTSLunaService(mRequestHandler.get(), mEngineHandler));
+        if(mLunaService == nullptr)
         return false;
+    }
+    catch (std::bad_alloc& eh)
+    {
+        LOG_ERROR( "ttsManager:", 0, "ERROR: TTSLunaservice bad_alloc caught" );
+        return false;
+    }
 
     mLunaService->attachToLoop(mainLoop);
     mRequestHandler->start();
@@ -64,15 +71,16 @@ void TTSManager::deInit()
 {
     LOG_TRACE("Entering function %s", __FUNCTION__);
 
-    if (mRequestHandler) {
-        delete mRequestHandler;
-    }
-    if (mEngineHandler.get()) {
-        mEngineHandler.reset();
-    }
-    if (mLunaService) {
-        mLunaService->detach();
-        delete mLunaService;
+    try
+    {
+        if (mEngineHandler.get()) {
+            mEngineHandler.reset();
+        }
+        if (mLunaService) {
+            mLunaService->detach();
+        }
+    }catch (LS::Error &lunaError) {
+        LOG_ERROR( "ttsManager:", 0, "ERROR: mLunaService detach thrown an exception" );
     }
 }
 
