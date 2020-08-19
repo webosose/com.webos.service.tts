@@ -26,10 +26,10 @@ class TTSEngineFactory
     public:
         virtual ~TTSEngineFactory() {}
 
-        virtual void create(std::shared_ptr<TTSEngine> &engine) const = 0;
+        virtual std::shared_ptr<TTSEngine> create(void) const = 0;
         virtual const char* getName() const = 0;
 
-        static void createTTSEngine(const std::string& name, std::shared_ptr<TTSEngine>& engine);
+        static std::shared_ptr<TTSEngine> createTTSEngine(const std::string& name);
         typedef std::shared_ptr<TTSEngineFactory> Factory;
         typedef std::map<std::string, Factory> Factories;
 
@@ -40,7 +40,8 @@ class TTSEngineFactory
             {
                 Factory factory { new T() };
                 std::string key(factory->getName());
-                mFactories.insert(std::pair<std::string, Factory>(key, factory));
+                std::pair<std::map<std::string, Factory>::iterator, bool > result;
+                result = mFactories.insert(std::pair<std::string, Factory>(key, factory));
             }
         };
 

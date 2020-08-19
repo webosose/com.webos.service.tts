@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2018 LG Electronics, Inc.
+// Copyright (c) 2009-2020 LG Electronics, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -21,10 +21,8 @@
 
 AudioEngineFactory::Registrator<PulseAudioEngineFactory> factoryPulseAudio;
 
-void PulseAudioEngineFactory::create(std::shared_ptr<AudioEngine> &engine) const
+std::shared_ptr<AudioEngine> PulseAudioEngineFactory::create(void) const
 {
     LOG_TRACE("Entering function %s", __FUNCTION__);
-
-    std::shared_ptr<AudioEngine> audioEngine(new PulseAudioEngine());
-    engine = audioEngine;
+    return std::make_shared<PulseAudioEngine> ();
 }

@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2019 LG Electronics, Inc.
+// Copyright (c) 2018-2020 LG Electronics, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -63,7 +63,21 @@ bool TTSRequest::execute()
     LOG_TRACE("Entering function %s", __FUNCTION__);
 
     LOG_DEBUG("Executing Request: %d", mReqType->requestType);
-    bool exeStatus = mEngineHandler->handleRequest(this);
+    int displayId = 0;
+    if (SPEAK == mReqType->requestType)
+    {
+        SpeakRequest* ptrSpeakRequest = reinterpret_cast<SpeakRequest*>(mReqType);
+        displayId = ptrSpeakRequest->msgParameters->displayId;
+        LOG_DEBUG("TTSRequest::execute : SPEAK displayId = %d", displayId);
+    }
+    else if (STOP == mReqType->requestType)
+    {
+        StopRequest* ptrStopRequest = reinterpret_cast<StopRequest*>(mReqType);
+        displayId = ptrStopRequest->displayId;
+        LOG_DEBUG("TTSRequest::execute : STOP displayId = %d", displayId);
+    }
+    LOG_DEBUG("TTSRequest : displayId = %d", displayId);
+    bool exeStatus = mEngineHandler->handleRequest(this, displayId);
     LOG_DEBUG("Executing Request: %d exeStatus:%d", mReqType->requestType ,exeStatus);
     return exeStatus;
 }

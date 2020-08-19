@@ -1,4 +1,4 @@
-// Copyright (c) 2018 LG Electronics, Inc.
+// Copyright (c) 2018-2020 LG Electronics, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -20,16 +20,18 @@
 #include <TTSLog.h>
 
 AudioEngineFactory::Factories AudioEngineFactory::mFactories;
-void AudioEngineFactory::createAudioEngine(const std::string& name, std::shared_ptr<AudioEngine>& engine)
+std::shared_ptr<AudioEngine> AudioEngineFactory::createAudioEngine(const std::string& name)
 {
     LOG_TRACE("Entering function %s", __FUNCTION__);
+    std::shared_ptr<AudioEngine> engine;
 
     std::map<std::string, Factory>::iterator it;
     it = mFactories.find(name.c_str());
     if(it != mFactories.end())
     {
         Factory factory = mFactories.find(name.c_str())->second;
-        factory->create(engine);
+        engine = factory->create();
     }
+    return engine;
 }
 

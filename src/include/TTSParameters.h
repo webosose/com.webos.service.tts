@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2019 LG Electronics, Inc.
+// Copyright (c) 2018-2020 LG Electronics, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -22,6 +22,9 @@
 #define GET_MSG_STATUS_TEXT(x) TTS_MsgStatusTable[(x)]
 #define GET_TASK_STATUS_TEXT(x) TTS_TaskStatusTable[(x)]
 
+#define DUAL_DISPLAYS 2
+#define DISPLAY_0 0 //Display One Functionality
+#define DISPLAY_1 1 //Display Two Functionality
 typedef enum _TTS_LANGUAGE_T
 {
     LANG_ERR = -1,
@@ -140,6 +143,7 @@ typedef struct Parameters
     std::string sAppID;
     MsgStatus_t eStatus;
     Task_Status_t eTaskStatus;
+    int displayId;
 }Parameters;
 
 static std::string TTS_TaskStatusTable[] = {
