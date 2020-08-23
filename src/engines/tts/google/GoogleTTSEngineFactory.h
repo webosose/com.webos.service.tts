@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2019 LG Electronics, Inc.
+// Copyright (c) 2018-2020 LG Electronics, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -24,7 +24,7 @@
 class GoogleTTSEngineFactory : public TTSEngineFactory
 {
     public:
-        virtual void create(std::shared_ptr<TTSEngine> &engine) const;
+        virtual std::shared_ptr<TTSEngine> create(void) const;
         virtual const char* getName() const { return "google"; }
 };
 #endif

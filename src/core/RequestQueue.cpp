@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2019 LG Electronics, Inc.
+// Copyright (c) 2018-2020 LG Electronics, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -21,6 +21,10 @@
 #include <TTSRequest.h>
 #include <StatusHandler.h>
 
+RequestQueue::RequestQueue()
+{
+    this->mQuit = true;
+}
 RequestQueue::RequestQueue(std::string name)
 {
     this->mQuit = true;
@@ -29,39 +33,48 @@ RequestQueue::RequestQueue(std::string name)
 
 RequestQueue::~RequestQueue()
 {
-    stop();
+
 }
 
-void RequestQueue::addRequest(Request* request)
+void RequestQueue::addRequest(Request* request, int displayId)
 {
     LOG_TRACE("Entering function %s", __FUNCTION__);
 
     LOG_DEBUG("%s New request added to queue :%d\n", mName.c_str(), request->getType());
-
-    std::unique_lock<std::mutex> lock(mMutex);
-    mRequestQueue.push_back(request);
-    lock.unlock();
-
+    {
+        std::lock_guard<std::mutex> lock(mMutex);
+        mRequestQueue[displayId].push_back(request);
+    }
     mCondVar.notify_one();
 }
 
-void RequestQueue::dispatchHandler()
+void RequestQueue::dispatchHandler(int displayId)
 {
     LOG_TRACE("Entering function %s", __FUNCTION__);
+    std::this_thread::sleep_for(std::chrono::milliseconds(1000));   // Sleep for 1000 milliseconds
 
     std::unique_lock < std::mutex > lock(mMutex);
 
     do {
         LOG_DEBUG("%s Waiting for request\n", mName.c_str());
+	if (displayId)
+        {
+            LOG_DEBUG("mCondVar");
+            mCondVar.wait(lock, [this] {
+                return (mRequestQueue[DISPLAY_1].size() || mQuit);
+            });
+        }
+        else
+        {
+            mCondVar.wait(lock, [this] {
+                return (mRequestQueue[DISPLAY_0].size() || mQuit);
+            });
+        }
 
-        mCondVar.wait(lock, [this] {
-            return (mRequestQueue.size() || mQuit);
-        });
-
-        if (mRequestQueue.size() && !mQuit) {
-            Request* op = std::move(mRequestQueue.front());
+        if (mRequestQueue[displayId].size() && !mQuit) {
+            Request* op = std::move(mRequestQueue[displayId].front());
             LOG_DEBUG("%sProcessing request %d\n", mName.c_str(), op->getType());
-            popFront();
+            popFront(displayId);
             lock.unlock();
 
             std::future<bool> fut = std::async(std::launch::async, [&op]() {return op->execute();});
@@ -77,7 +90,7 @@ void RequestQueue::dispatchHandler()
     LOG_DEBUG("%s Dispatcher thread done\n", mName.c_str());
 
 }
-void RequestQueue::start()
+void RequestQueue::start(int displayId)
 {
     LOG_TRACE("Entering function %s", __FUNCTION__);
 
@@ -85,11 +98,11 @@ void RequestQueue::start()
 
     if (mQuit) {
         mQuit = false;
-        mDispatcherThread = std::thread(std::bind(&RequestQueue::dispatchHandler, this));
+        mDispatcherThread[displayId] = std::thread(std::bind(&RequestQueue::dispatchHandler, this, displayId));
     }
 }
 
-void RequestQueue::stop()
+void RequestQueue::stop(int displayId)
 {
     LOG_TRACE("Entering function %s", __FUNCTION__);
 
@@ -98,26 +111,26 @@ void RequestQueue::stop()
     if (!mQuit) {
         mQuit = true;
         mCondVar.notify_all();
-        mDispatcherThread.join();
     }
 }
 
-void RequestQueue::popFront()
+void RequestQueue::popFront(int displayId)
 {
     LOG_TRACE("Entering function %s", __FUNCTION__);
-
-    if (!mRequestQueue.empty()) mRequestQueue.erase(mRequestQueue.begin());
+    if (!mRequestQueue[displayId].empty()){
+       (void)(mRequestQueue[displayId].erase(mRequestQueue[displayId].begin()));
+    }
 }
 
-void RequestQueue::removeRequest(std::string sAppID, std::string sMsgID)
+void RequestQueue::removeRequest(std::string sAppID, std::string sMsgID, int displayId)
 {
     if(sMsgID.empty() && sAppID.empty())
     {
-        clearQueue();
+        clearQueue(displayId);
         return;
     }
-    std::vector<Request*>::iterator it = mRequestQueue.begin();
-    while (it != mRequestQueue.end())
+    std::vector<Request*>::iterator it = mRequestQueue[displayId].begin();
+    while (it != mRequestQueue[displayId].end())
     {
         Request* ttsRequest = *it;
         SpeakRequest* ptrSpeakRequest = reinterpret_cast<SpeakRequest*>(ttsRequest->getRequest());
@@ -129,7 +142,7 @@ void RequestQueue::removeRequest(std::string sAppID, std::string sMsgID)
         {
             std::lock_guard<std::mutex> lock(mMutex);
             setRequestStatus(ttsRequest);
-            it = mRequestQueue.erase(it);
+            it = mRequestQueue[displayId].erase(it);
             delete ttsRequest;
             ttsRequest = nullptr;
             break; //msgID is unique
@@ -139,7 +152,7 @@ void RequestQueue::removeRequest(std::string sAppID, std::string sMsgID)
             std::lock_guard<std::mutex> lock(mMutex);
             {
                 setRequestStatus(ttsRequest);
-                it = mRequestQueue.erase(it);
+                it = mRequestQueue[displayId].erase(it);
                 delete ttsRequest;
                 ttsRequest = nullptr;
             }
@@ -150,19 +163,20 @@ void RequestQueue::removeRequest(std::string sAppID, std::string sMsgID)
         }
     }
 }
-void RequestQueue::clearQueue()
+void RequestQueue::clearQueue(int displayId)
 {
    LOG_TRACE("Entering function %s", __FUNCTION__);
    std::lock_guard<std::mutex> lock(mMutex);
-   std::vector<Request*>::iterator it = mRequestQueue.begin();
-   while (it != mRequestQueue.end())
+   std::vector<Request*>::iterator it = mRequestQueue[displayId].begin();
+   while (it != mRequestQueue[displayId].end())
    {
        Request* ttsRequest = *it;
        setRequestStatus(ttsRequest);
-       it = mRequestQueue.erase(it);
+       it = mRequestQueue[displayId].erase(it);
        delete ttsRequest;
        ttsRequest = nullptr;
    }
+   LOG_DEBUG("RequestQueue::clearQueue : Cleared request from mRequestQueue, displayId = %d", displayId);
 }
 
 void RequestQueue::setRequestStatus(Request* pRequest)

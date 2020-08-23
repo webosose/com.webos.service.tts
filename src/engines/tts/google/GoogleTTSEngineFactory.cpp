@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2019 LG Electronics, Inc.
+// Copyright (c) 2018-2020 LG Electronics, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -20,9 +20,8 @@
 
 TTSEngineFactory::Registrator<GoogleTTSEngineFactory> factoryGoogleTTS;
 
-void GoogleTTSEngineFactory::create(std::shared_ptr<TTSEngine> &engine) const
+std::shared_ptr<TTSEngine> GoogleTTSEngineFactory::create(void) const
 {
     LOG_TRACE("Entering function %s", __FUNCTION__);
-    std::shared_ptr<TTSEngine> googleEngine(new GoogleTTSEngine());
-    engine = googleEngine;
+    return std::make_shared<GoogleTTSEngine> ();
 }

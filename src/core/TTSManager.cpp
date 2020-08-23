@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2019 LG Electronics, Inc.
+// Copyright (c) 2018-2020 LG Electronics, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -62,7 +62,8 @@ bool TTSManager::init(GMainLoop *mainLoop)
     }
 
     mLunaService->attachToLoop(mainLoop);
-    mRequestHandler->start();
+    mRequestHandler->start(DISPLAY_0);
+    mRequestHandler->start(DISPLAY_1);
 
     return true;
 }

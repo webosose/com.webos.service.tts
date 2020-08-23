@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2019 LG Electronics, Inc.
+// Copyright (c) 2018-2020 LG Electronics, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -28,22 +28,23 @@ class TTSRequest;
 class RequestQueue
 {
 public:
+    RequestQueue();
     RequestQueue(std::string name);
     virtual ~RequestQueue();
-    void addRequest(Request* request);
-    void start();
-    void stop();
-    void removeRequest(std::string sAppID, std::string sMsgID);
-    void clearQueue();
+    void addRequest(Request* request, int displayId);
+    void start(int displayId);
+    void stop(int displayId);
+    void removeRequest(std::string sAppID, std::string sMsgID, int displayId);
+    void clearQueue(int displayId);
 
 private:
-    void dispatchHandler();
-    void popFront();
+    void dispatchHandler(int displayId);
+    void popFront(int displayId);
     void setRequestStatus(Request* request);
-    bool mQuit;
+    volatile bool mQuit;
     std::string mName;
-    std::thread mDispatcherThread;
-    std::vector<Request*> mRequestQueue;
+    std::thread mDispatcherThread[DUAL_DISPLAYS];
+    std::vector<Request*> mRequestQueue[DUAL_DISPLAYS];
     std::mutex mMutex;
     std::condition_variable mCondVar;
 };

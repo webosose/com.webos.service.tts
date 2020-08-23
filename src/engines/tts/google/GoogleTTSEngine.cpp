@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2019 LG Electronics, Inc.
+// Copyright (c) 2009-2020 LG Electronics, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -27,13 +27,14 @@ using google::cloud::texttospeech::v1::VoiceSelectionParams;
 using google::cloud::texttospeech::v1::AudioEncoding;
 
 #define GOOGLE_APPLICATION_ENDPOINT   "texttospeech.googleapis.com"
-#define AUDIO_FILE                    "/tmp/sttsResult.pcm"
+#define AUDIO_FILE_1                  "/tmp/sttsResultOne.pcm"
+#define AUDIO_FILE_2                  "/tmp/sttsResultTwo.pcm"
 #define DEFAULT_LANGUAGE              "en-US"
 #define TTS_ENGINE_NAME               "google"
 #define GOOGLE_TTS_REQUEST_TAG        1
 
 GoogleTTSEngine::GoogleTTSEngine(double pitch, double speakRate) : TTSEngine(),mSpeakRate(speakRate),mPitch(pitch),
-     mIsStop(false)
+     mIsStopDisplay1(false), mIsStopDisplay2(false)
 {
     setenv("GOOGLE_APPLICATION_CREDENTIALS", GOOGLE_ENV_FILE , 1);
     mCredentials = grpc::GoogleDefaultCredentials();
@@ -44,7 +45,7 @@ void GoogleTTSEngine::getStatus()
     LOG_TRACE("Entering function %s", __FUNCTION__);
 }
 
-void GoogleTTSEngine::getSupportedLanguages(std::vector<std::string> &  vecLang)
+void GoogleTTSEngine::getSupportedLanguages(std::vector<std::string> &  vecLang, int displayId)
 {
     LOG_TRACE("Entering function %s", __FUNCTION__);
     if(mAvailableLanguages.size() != 0){
@@ -75,12 +76,14 @@ void GoogleTTSEngine::getSupportedLanguages(std::vector<std::string> &  vecLang)
     }
 }
 
-int GoogleTTSEngine::speak(std::string text, LSHandle* sh, std::string language)
+int GoogleTTSEngine::speak(std::string text, LSHandle* sh, std::string language, int displayId)
 {
     LOG_TRACE("Entering function %s", __FUNCTION__);
-    if(mIsStop){
-        mIsStop = false;
-    }
+    if ((mIsStopDisplay2) && (DISPLAY_1== displayId))
+        mIsStopDisplay2 = false;
+    if ((mIsStopDisplay1) && (DISPLAY_0 == displayId))
+        mIsStopDisplay1 = false;
+
     auto channel = grpc::CreateChannel(GOOGLE_APPLICATION_ENDPOINT, mCredentials);
 
     std::unique_ptr<TextToSpeech::Stub> textToSpeech = TextToSpeech::NewStub(channel);
@@ -123,13 +126,19 @@ int GoogleTTSEngine::speak(std::string text, LSHandle* sh, std::string language)
                 LOG_DEBUG("While Waiting For Reply from Google...Got NO CASE MATCH");
                 break;
         }
-        if(mIsStop){
+        if(mIsStopDisplay1 || mIsStopDisplay2){
             LOG_DEBUG("Got Stop While Waiting For Reply From Google");
             break;
         }
     }while(!(ok && (got_tag == (void *)GOOGLE_TTS_REQUEST_TAG)));
-    if(mIsStop){
-        mIsStop = false;
+    if ((mIsStopDisplay2) && (DISPLAY_1 == displayId))
+    {
+        mIsStopDisplay2 = false;
+        return TTSErrors::SPEECH_DATA_CREATION_ERROR;
+    }
+    if ((mIsStopDisplay1) && (DISPLAY_0 == displayId))
+    {
+        mIsStopDisplay1 = false;
         return TTSErrors::SPEECH_DATA_CREATION_ERROR;
     }
     if(gStatus.error_code() == grpc::StatusCode::OK)
@@ -137,7 +146,10 @@ int GoogleTTSEngine::speak(std::string text, LSHandle* sh, std::string language)
         std::string synthOutput = speechResponse.audio_content();
         std::ofstream outfile;
 
-        outfile.open(AUDIO_FILE, std::ofstream::out | std::ofstream::binary);
+        if (DISPLAY_1 == displayId)
+	    outfile.open(AUDIO_FILE_2, std::ofstream::out | std::ofstream::binary);
+	else
+            outfile.open(AUDIO_FILE_1, std::ofstream::out | std::ofstream::binary);
         if(outfile.is_open())
             outfile << synthOutput;
 
@@ -157,10 +169,13 @@ void GoogleTTSEngine::start()
     LOG_TRACE("Entering function %s", __FUNCTION__);
 }
 
-void GoogleTTSEngine::stop()
+void GoogleTTSEngine::stop(int displayId)
 {
     LOG_TRACE("Entering function %s", __FUNCTION__);
-    mIsStop = true;
+    if (displayId)
+        mIsStopDisplay2 = true;
+    else
+        mIsStopDisplay1 = true;
 }
 
 void GoogleTTSEngine::init()

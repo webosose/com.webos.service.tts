@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2019 LG Electronics, Inc.
+// Copyright (c) 2018-2020 LG Electronics, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -35,6 +35,7 @@ TTSLunaService::TTSLunaService(RequestHandler* requestHandler, std::shared_ptr<E
 {
     TTSLunaService::lsHandle = this->get();
     registerService();
+    LOG_DEBUG("TTSLunaService::TTSLunaService : Function Starting");
 }
 
 TTSLunaService::~TTSLunaService()
@@ -74,10 +75,10 @@ bool TTSLunaService::speak(LSMessage &message)
     pbnjson::JValue responseObj = pbnjson::Object();
 
     int parseError = 0;
+    int displayId = 0;
     bool retVal = false;
 
-    const std::string schema = STRICT_SCHEMA(PROPS_6(PROP(text, string), PROP(clear, boolean), PROP(subscribe, boolean), PROP(appID, string),
-                                                                  PROP(feedback, boolean), PROP(language, string))REQUIRED_1(text));
+    const std::string schema = STRICT_SCHEMA(PROPS_7(PROP(text, string), PROP(clear, boolean), PROP(subscribe, boolean), PROP(appID, string), PROP(feedback, boolean), PROP(language, string), PROP(displayId, integer))REQUIRED_1(text));
 
     if (!LSUtils::parsePayload(request.getPayload(), requestObj, schema, &parseError))
     {
@@ -85,7 +86,10 @@ bool TTSLunaService::speak(LSMessage &message)
         LSUtils::respondWithError(request, errorStr, TTSErrors::INVALID_JSON_FORMAT);
         return true;
     }
+    if ((requestObj["displayId"].asNumber(displayId)) != CONV_OK)
+        LOG_DEBUG("Speak : Display Id not present");
 
+    std::string textString;
     SpeakRequest *speakRequest = new (std::nothrow)SpeakRequest;
     if(speakRequest == nullptr){
         const std::string errorStr = TTSErrors::getTTSErrorString(TTSErrors::TTS_MEMORY_ERROR);
@@ -93,30 +97,34 @@ bool TTSLunaService::speak(LSMessage &message)
         LOG_ERROR(MSGID_TTS_MEMORY_ERROR, 0, "Failed To Allocatememory for SpeakRequest");
         return true;
     }
-    requestObj["text"].asString(speakRequest->text_to_speak);
-    speakRequest->sh = this->get();
-    speakRequest->replyCB = responseCallback;
-    speakRequest->message = request;
-
-    if ((speakRequest->text_to_speak).empty())
+    else
     {
-        const std::string errorStr = TTSErrors::getTTSErrorString(TTSErrors::INPUT_TEXT_EMPTY);
-        LSUtils::respondWithError(request, errorStr, TTSErrors::INPUT_TEXT_EMPTY);
-        delete speakRequest;
-        speakRequest = nullptr;
-        return true;
+        if((requestObj["text"].asString(speakRequest->text_to_speak)) != CONV_OK);
+            LOG_DEBUG("Speak : Text not present to Request");
+
+        speakRequest->sh = this->get();
+        speakRequest->replyCB = responseCallback;
+        speakRequest->message = request;
+
+        if ((speakRequest->text_to_speak).empty())
+        {
+            const std::string errorStr = TTSErrors::getTTSErrorString(TTSErrors::INPUT_TEXT_EMPTY);
+            LSUtils::respondWithError(request, errorStr, TTSErrors::INPUT_TEXT_EMPTY);
+            delete speakRequest;
+            speakRequest = nullptr;
+            return true;
+        }
+        addParameters(message);
+        speakRequest->msgParameters = mParameterList;
+
+        if(mParameterList->bSubscribed)
+        {
+            bool ret = addSubscription(lsHandle, &message, speakRequest->msgParameters->sMsgID);
+        }
+
+        TTSRequest* ttsRequest = new (std::nothrow) TTSRequest(reinterpret_cast<RequestType*>(speakRequest), mEngineHandler);
+        retVal = mRequestHandler->sendRequest(ttsRequest, displayId);
     }
-
-    addParameters(message);
-    speakRequest->msgParameters = mParameterList;
-
-    if(mParameterList->bSubscribed)
-    {
-        bool ret = addSubscription(lsHandle, &message, speakRequest->msgParameters->sMsgID);
-    }
-
-    TTSRequest* ttsRequest = new (std::nothrow) TTSRequest(reinterpret_cast<RequestType*>(speakRequest), mEngineHandler);
-    retVal = mRequestHandler->sendRequest(ttsRequest);
 
     if(retVal)
     {
@@ -169,8 +177,8 @@ bool TTSLunaService::stop(LSMessage &message)
    bool retVal = false;
    pbnjson::JValue requestObj;
    int parseError = 0;
-   const std::string schema = STRICT_SCHEMA(PROPS_3(PROP(msgID, string),PROP(appID, string),
-                                                                          PROP(fadeOut, boolean)));
+   int displayId = 0;
+   const std::string schema = STRICT_SCHEMA(PROPS_4(PROP(msgID, string),PROP(appID, string), PROP(fadeOut, boolean), PROP(displayId, integer)));
    if (!LSUtils::parsePayload(request.getPayload(), requestObj, schema, &parseError))
    {
       const std::string errorStr = TTSErrors::getTTSErrorString(TTSErrors::INVALID_JSON_FORMAT);
@@ -180,6 +188,10 @@ bool TTSLunaService::stop(LSMessage &message)
    std::string applicationID = requestObj["appID"].asString();
    std::string MessageID = requestObj["msgID"].asString();
    bool bfadeOut = requestObj["fadeOut"].asBool();
+   if (requestObj["displayId"].asNumber(displayId) != CONV_OK)
+   {
+       LOG_DEBUG("DisplayId present in the stop request\n");
+   }
    StopRequest *stopRequest = new (std::nothrow) StopRequest;
    if(stopRequest == nullptr){
        return true;
@@ -187,13 +199,14 @@ bool TTSLunaService::stop(LSMessage &message)
    stopRequest->sAppID = applicationID;
    stopRequest->sMsgID = MessageID;
    stopRequest->fadeOut = bfadeOut;
+   stopRequest->displayId = displayId ;
    TTSRequest* ttsRequest = new (std::nothrow) TTSRequest(reinterpret_cast<RequestType*>(stopRequest), mEngineHandler);
    if(ttsRequest == nullptr){
        delete stopRequest;
        stopRequest = nullptr;
        return true;
    }
-   retVal = mRequestHandler->sendRequest(ttsRequest);
+   retVal = mRequestHandler->sendRequest(ttsRequest, displayId);
    if(retVal)
    {
       LOG_DEBUG("Stop Request Complete\n");
@@ -228,7 +241,24 @@ bool TTSLunaService::getAvailableLanguages(LSMessage &message)
 
     LS::Message request(&message);
     std::string payload;
+    pbnjson::JValue requestObj;
+    int parseError = 0;
     bool retVal = false;
+    int displayId = 0;
+
+    /* Added to Support Multiple Devices for OSE */
+    const std::string schema = STRICT_SCHEMA(PROPS_1(PROP(displayId, integer)));
+    if (!LSUtils::parsePayload(request.getPayload(), requestObj, schema, &parseError))
+    {
+        const std::string errorStr = TTSErrors::getTTSErrorString(TTSErrors::INVALID_JSON_FORMAT);
+        LSUtils::respondWithError(request, errorStr, TTSErrors::INVALID_JSON_FORMAT);
+        return true;
+    }
+
+    if ((requestObj["displayId"].asNumber(displayId)) != CONV_OK)
+    {
+        LOG_DEBUG("getAvailableLanguages : DisplayId not present, hence default displayId = 0");
+    }
 
     GetLanguageRequest* ptrGetLanguageRequest = new (std::nothrow)GetLanguageRequest();
     if(ptrGetLanguageRequest == nullptr){
@@ -245,7 +275,7 @@ bool TTSLunaService::getAvailableLanguages(LSMessage &message)
         LSUtils::respondWithError(request, errorStr, TTSErrors::TTS_MEMORY_ERROR);
         return true;
     }
-    retVal = mRequestHandler->sendRequest(ttsRequest);
+    retVal = mRequestHandler->sendRequest(ttsRequest, displayId);
     if(retVal)
     {
         LOG_DEBUG("Get Available Languages Request Complete\n");
@@ -287,17 +317,20 @@ bool TTSLunaService::getStatus(LSMessage &message)
     LS::Message request(&message);
     pbnjson::JValue requestObj;
     int parseError = 0;
+    int displayId = 0;
     bool retVal = false;
     std::string payload;
 
-    const std::string schema = SCHEMA_ANY;
-
+    const std::string schema = STRICT_SCHEMA(PROPS_1(PROP(displayId, integer)));
     if (!LSUtils::parsePayload(request.getPayload(), requestObj, schema, &parseError))
     {
         const std::string errorStr = TTSErrors::getTTSErrorString(TTSErrors::INVALID_JSON_FORMAT);
         LSUtils::respondWithError(request, errorStr, TTSErrors::INVALID_JSON_FORMAT);
         return true;
     }
+    if ((requestObj["displayId"].asNumber(displayId)) != CONV_OK)
+        LOG_DEBUG("getStatus : display Id not present, Hence default displayId = 0");
+
     GetStatusRequest* getStatusRequest = new (std::nothrow)GetStatusRequest;
     if(getStatusRequest == nullptr){
         LOG_ERROR(MSGID_TTS_MEMORY_ERROR, 0, "Memory Allocation Error In GetStatusRequest");
@@ -328,7 +361,7 @@ bool TTSLunaService::getStatus(LSMessage &message)
         LSUtils::respondWithError(request, errorStr, TTSErrors::TTS_MEMORY_ERROR);
         return true;
     }
-    retVal = mRequestHandler->sendRequest(ptrTTSRequest);
+    retVal = mRequestHandler->sendRequest(ptrTTSRequest, displayId);
 
     if(retVal)
     {
@@ -363,6 +396,7 @@ bool TTSLunaService::getStatus(LSMessage &message)
                LOG_ERROR(MSGID_ERROR_CALL, 0, lserror.message);
                LSErrorFree(&lserror);
     }
+    LOG_DEBUG("End of getStatus Request\n");
     delete ptrTTSRequest;
     ptrTTSRequest=nullptr;
     return true;
@@ -430,6 +464,7 @@ void TTSLunaService::addParameters(LSMessage &message)
     LS::Message request(&message);
     pbnjson::JValue requestObj = pbnjson::Object();
     int lCount;
+    int displayId = 0;
 
     LSUtils::parsePayload(request.getPayload(), requestObj);
 
@@ -437,11 +472,17 @@ void TTSLunaService::addParameters(LSMessage &message)
 
     if(mParameterList != nullptr)
     {
-        requestObj["text"].asString(mParameterList->sText);
+	if ((requestObj["text"].asString(mParameterList->sText)) != CONV_OK)
+            LOG_DEBUG("addParameters : String Text is not present\n");
         mParameterList->bFeedback = requestObj["feedback"].asBool();
         mParameterList->bSubscribed = LSMessageIsSubscription(&message);
         mParameterList->eStatus = TTS_MSG_ERROR;
         mParameterList->sAppID = requestObj["appID"].asString();
+
+        if (requestObj["displayId"].asNumber(displayId) == CONV_OK)
+            LOG_DEBUG("addParameters : displayId  = %d\n", displayId);
+
+        mParameterList->displayId = displayId;
         mParameterList->eTaskStatus = TTS_TASK_NOT_READY;
         mParameterList->eLang = LANG_ENUS;
 
@@ -526,37 +567,35 @@ void TTSLunaService::statusResponse(TTSStatus* pTTSStatus, LS::Message& message)
 
 bool TTSLunaService::handle_getVolume_callback(LSHandle *sh, LSMessage *message, void *ctx)
 {
+    LOG_DEBUG("handle_getVolume_callback entry\n");
     if (nullptr == ctx){
         return false;
     }
 
     LSMessageRef(message);
-    int iVolume = 0;
-    pbnjson::JValue root;
+    int volume = 0;
     const char *msgPayload;
 
     msgPayload = LSMessageGetPayload(message);
-    if (!LSUtils::parsePayload(msgPayload, root)) {
+    pbnjson::JValue root = pbnjson::JDomParser::fromString(msgPayload);
+    if(!LSUtils::parsePayload(msgPayload, root)) {
         LSMessageUnref(message);
+        LOG_DEBUG("handle_getVolume_callback Failed to Parse message\n");
         return false;
     }
+    LOG_DEBUG("getVolume Json object from Audio = %s \n", root.stringify().c_str());
     GetStatusRequest* pgetStatusRequest = static_cast<GetStatusRequest *> (ctx);
+    pbnjson::JValue volumeStatus = root["volumeStatus"];
+    LOG_DEBUG("volumeStatus Json Object from Audio = %s \n", volumeStatus.stringify().c_str());
 
-    const pbnjson::JValue& jArray = root["volumeStatus"];
-    if (!jArray.isArray()) {
-        LSMessageUnref(message);
-        return false;
-    }
+    if (!volumeStatus.isArray())
+            LOG_DEBUG("handle_getVolume_callback : volumeStatus is not an array \n");
 
-    for (pbnjson::JValue it : jArray.items())
-    {
-        pbnjson::JValue  jVolume = it["volume"];
-        if(jVolume.isNumber())
-            iVolume = jVolume.asNumber<int>();
-    }
+    if( volumeStatus.hasKey("volume"))
+        volume = volumeStatus["volume"].asNumber<int>();
 
-    pgetStatusRequest->pTTSStatus->volume = iVolume;
-    LOG_DEBUG("handle_getVolume_callback volume = %d", iVolume);
+    pgetStatusRequest->pTTSStatus->volume = volume;
+    LOG_DEBUG("handle_getVolume_callback volume = %d", volume);
     LSMessageUnref(message);
     return true;
 }

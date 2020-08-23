@@ -2,7 +2,8 @@
     "engine" : {
         "tts_engine" : "google",
         "audio_engine" : "pulse",
-        "audio_type" : "male"
+        "audio_type" : "male",
+        "displayCount" : 2
     },
     "google" : {
         "def_language" : "en_US",

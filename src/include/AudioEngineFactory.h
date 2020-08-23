@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2018 LG Electronics, Inc.
+// Copyright (c) 2009-2020 LG Electronics, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -26,10 +26,10 @@ class AudioEngineFactory
     public:
         virtual ~AudioEngineFactory() {}
 
-        virtual void create(std::shared_ptr<AudioEngine> &engine) const = 0;
+        virtual  std::shared_ptr<AudioEngine> create() const = 0;
         virtual const char* getName() const = 0;
 
-        static void createAudioEngine(const std::string& name, std::shared_ptr<AudioEngine>& engine);
+        static std::shared_ptr<AudioEngine> createAudioEngine(const std::string& name);
         typedef std::shared_ptr<AudioEngineFactory> Factory;
         typedef std::map<std::string, Factory> Factories;
 
@@ -40,7 +40,8 @@ class AudioEngineFactory
             {
                 Factory factory { new T() };
                 std::string key(factory->getName());
-                mFactories.insert(std::pair<std::string, Factory>(key, factory));
+                std::pair<std::map<std::string, Factory>::iterator, bool > result;
+                result = mFactories.insert(std::pair<std::string, Factory>(key, factory));
             }
         };
 

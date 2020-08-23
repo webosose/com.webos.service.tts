@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2019 LG Electronics, Inc.
+// Copyright (c) 2018-2020 LG Electronics, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -17,17 +17,16 @@
 #include <RequestHandler.h>
 #include <StatusHandler.h>
 
-RequestHandler::RequestHandler(std::shared_ptr<EngineHandler> engineHandler)
-        : mSpeakRequestQueue("QUEUE_SPEAK"), mControlRequestQueue("QUEUE_CONTROL"), mEngineHandler(engineHandler)
+RequestHandler::RequestHandler(std::shared_ptr<EngineHandler> engineHandler) : mSpeakRequestQueueDisplay1("QUEUE_SPEAK1"), mSpeakRequestQueueDisplay2("QUEUE_SPEAK2"), mControlRequestQueueDisplay1("QUEUE_CONTROL_1"), mControlRequestQueueDisplay2("QUEUE_CONTROL_2"), mEngineHandler(engineHandler)
 {
 }
 
 RequestHandler::~RequestHandler()
 {
-    stop();
+
 }
 
-bool RequestHandler::sendRequest(TTSRequest* request)
+bool RequestHandler::sendRequest(TTSRequest* request, int displayId)
 {
     LOG_TRACE("Entering function %s", __FUNCTION__);
     LOG_DEBUG("Request Type: %d", request->getType());
@@ -37,71 +36,105 @@ bool RequestHandler::sendRequest(TTSRequest* request)
         SpeakRequest* ptrSpeakRequest = reinterpret_cast<SpeakRequest*>(request->getRequest());
         if(ptrSpeakRequest->msgParameters->bClear)
         {
-          TTSRequest* pRunningRequest = mEngineHandler->getRunningSpeakRequest();
+          LOG_DEBUG("RequestHandler: DisplayId = %d", displayId);
+          TTSRequest* pRunningRequest = mEngineHandler->getRunningSpeakRequest(displayId);
           if(nullptr != pRunningRequest)
           {
              SpeakRequest* pRunningSpeakRequest = reinterpret_cast<SpeakRequest*>(pRunningRequest->getRequest());
 
-             if( pRunningSpeakRequest->msgParameters->eStatus == MsgStatus::TTS_MSG_PLAY)
+             if( pRunningSpeakRequest->msgParameters->displayId ==  displayId &&
+                 pRunningSpeakRequest->msgParameters->eStatus == MsgStatus::TTS_MSG_PLAY)
              {
-                stopSpeech(); // send stop clear message
+                stopSpeech(displayId); // send stop clear message
                 pRunningSpeakRequest->msgParameters->eStatus = TTS_MSG_STOP;
+                pRunningSpeakRequest->msgParameters->displayId = displayId;
                 LOG_DEBUG("Previous speak request is stopped\n");
               }
           }
-          mSpeakRequestQueue.clearQueue();
+          if (displayId)
+              mSpeakRequestQueueDisplay2.clearQueue(displayId);
+          else
+              mSpeakRequestQueueDisplay1.clearQueue(displayId);
         }
-        mSpeakRequestQueue.addRequest(request);
+        if (displayId)
+            mSpeakRequestQueueDisplay2.addRequest(request, displayId);
+        else
+            mSpeakRequestQueueDisplay1.addRequest(request, displayId);
     }
     else if (request->getType() == STOP )
     {
         StopRequest* ptrStopRequest = reinterpret_cast<StopRequest*>(request->getRequest());
         std::string stopAppID = ptrStopRequest->sAppID;
         std::string stopMsgID = ptrStopRequest->sMsgID;
+        LOG_DEBUG("RequestHandler::sendRequest: Before CheckToStopRunningSpeak \n");
 
-        if( CheckToStopRunningSpeak(mEngineHandler->getRunningSpeakRequest(),request ) )
+        if( CheckToStopRunningSpeak(mEngineHandler->getRunningSpeakRequest(displayId),request ) )
         {
-             mControlRequestQueue.addRequest(request);
+             LOG_DEBUG("RequestHandler::sendRequest: After CheckToStopRunningSpeak \n");
+             if (displayId)
+                mControlRequestQueueDisplay2.addRequest(request, displayId);
+             else
+                mControlRequestQueueDisplay1.addRequest(request, displayId);
         }
         else
         {
             delete request;
             request = nullptr;
         }
-        mSpeakRequestQueue.removeRequest(stopAppID,stopMsgID);
+	if (displayId)
+            mSpeakRequestQueueDisplay2.removeRequest(stopAppID,stopMsgID, displayId);
+        else
+            mSpeakRequestQueueDisplay1.removeRequest(stopAppID,stopMsgID, displayId);
     }
     else if (request->getType() == GET_LANGUAGES )
     {
-        mEngineHandler->getLanguages(request);
+        mEngineHandler->getLanguages(request, displayId);
     }
     else if (request->getType() == GET_STATUS )
     {
         LOG_DEBUG("Request Type: %d", request->getType());
-        mEngineHandler->getStatusInfo(request);
+        mEngineHandler->getStatusInfo(request, displayId);
     }
     else
     {
         LOG_DEBUG("Request Type: %d", request->getType());
-        mControlRequestQueue.addRequest(request);
+        if (displayId)
+            mControlRequestQueueDisplay2.addRequest(request, displayId);
+        else
+            mControlRequestQueueDisplay1.addRequest(request, displayId);
     }
 
     return true;
 }
 
-void RequestHandler::start()
+void RequestHandler::start(int displayId)
 {
     LOG_TRACE("Entering function %s", __FUNCTION__);
 
-    mControlRequestQueue.start();
-    mSpeakRequestQueue.start();
+    if (displayId)
+        mControlRequestQueueDisplay2.start(displayId);
+    else
+        mControlRequestQueueDisplay1.start(displayId);
+
+    if (displayId)
+        mSpeakRequestQueueDisplay2.start(displayId);
+    else
+        mSpeakRequestQueueDisplay1.start(displayId);
 }
 
-void RequestHandler::stop()
+void RequestHandler::stop(int displayId)
 {
     LOG_TRACE("Entering function %s", __FUNCTION__);
 
-    mSpeakRequestQueue.stop();
-    mControlRequestQueue.stop();
+    if (displayId)
+        mSpeakRequestQueueDisplay2.stop(displayId);
+    else
+        mSpeakRequestQueueDisplay1.stop(displayId);
+
+    if (displayId)
+        mControlRequestQueueDisplay2.stop(displayId);
+    else
+        mControlRequestQueueDisplay1.stop(displayId);
 }
 
 bool RequestHandler::CheckToStopRunningSpeak(TTSRequest* pRunningRequest, TTSRequest* pRequest)
@@ -132,17 +165,21 @@ bool RequestHandler::CheckToStopRunningSpeak(TTSRequest* pRunningRequest, TTSReq
     return bret;
 }
 
-void RequestHandler::stopSpeech()
+void RequestHandler::stopSpeech(int displayId)
 {
+    LOG_DEBUG("RequestHandler::stopSpeechRequest  DisplayId = %d", displayId);
     StopRequest *stopRequest = new (std::nothrow)StopRequest;
     if(stopRequest == nullptr){
         return;
     }
+    stopRequest->displayId = displayId;
     TTSRequest* request =new (std::nothrow)TTSRequest(reinterpret_cast<RequestType*>(stopRequest), mEngineHandler);
     if(request == nullptr){
         delete stopRequest;
         return;
     }
-
-    mControlRequestQueue.addRequest(request);
+    if(displayId)
+        mControlRequestQueueDisplay2.addRequest(request, displayId);
+    else
+       mControlRequestQueueDisplay1.addRequest(request, displayId);
 }

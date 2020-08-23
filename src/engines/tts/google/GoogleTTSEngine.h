@@ -35,6 +35,8 @@
 #define GOOGLE_ENV_FILE "/etc/google/google_tts_credentials.json"
 #define DEFAULT_SPEECH_SAMPLE_RATE 22050
 
+#define DISPLAY_0 0 //Display One Functionality
+#define DISPLAY_1 1 //Display Two Functionality
 using grpc::Channel;
 using grpc::ChannelCredentials;
 using grpc::ClientContext;
@@ -54,10 +56,10 @@ public:
 
     virtual ~GoogleTTSEngine() {};
     void getStatus();
-    void getSupportedLanguages(std::vector<std::string> &  vecLang);
-    int speak(std::string text, LSHandle* sh, std::string language);
+    void getSupportedLanguages(std::vector<std::string> &  vecLang, int displayId);
+    int speak(std::string text, LSHandle* sh, std::string language, int displayId);
     void start();
-    void stop();
+    void stop(int displayId);
     void init();
     void deInit();
     std::string getName();
@@ -75,7 +77,8 @@ private:
     double mSpeakRate;
     double mPitch;
     std::vector<std::string> mAvailableLanguages;
-    std::atomic<bool> mIsStop;
+    std::atomic<bool>mIsStopDisplay1 ;
+    std::atomic<bool>mIsStopDisplay2 ;
 };
 
 #endif /* SRC_ENGINES_GOOGLETTSENGINE_H_ */

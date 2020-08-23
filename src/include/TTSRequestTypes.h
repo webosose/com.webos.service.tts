@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2019 LG Electronics, Inc.
+// Copyright (c) 2018-2020 LG Electronics, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -55,6 +55,7 @@ typedef struct StopRequest
     bool fadeOut = false;
     std::string sAppID;
     std::string sMsgID;
+    int displayId;
 } StopRequest;
 
 typedef struct GetStatusRequest
@@ -64,12 +65,14 @@ typedef struct GetStatusRequest
     TTSStatus* pTTSStatus;
     void (*replyCB)(TTSStatus* pTTSStatus, LS::Message &message);
     LS::Message message;
+    int displayId;
 } GetStatusRequest;
 
 typedef struct GetLanguageRequest
 {
     const REQUEST_TYPE commandId = GET_LANGUAGES;
     std::vector<std::string>  vecLanguages;
+    int displayId;
 } GetLanguageRequest;
 
 #endif /* SRC_INCLUDE_TTSREQUESTTYPES_H_ */
