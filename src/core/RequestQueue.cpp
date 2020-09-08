@@ -122,14 +122,15 @@ void RequestQueue::popFront(int displayId)
     }
 }
 
-void RequestQueue::removeRequest(std::string sAppID, std::string sMsgID, int displayId)
+bool RequestQueue::removeRequest(std::string sAppID, std::string sMsgID, int displayId)
 {
     if(sMsgID.empty() && sAppID.empty())
     {
         clearQueue(displayId);
-        return;
+        return true;
     }
     std::vector<Request*>::iterator it = mRequestQueue[displayId].begin();
+    bool del_ret = false;
     while (it != mRequestQueue[displayId].end())
     {
         Request* ttsRequest = *it;
@@ -145,6 +146,7 @@ void RequestQueue::removeRequest(std::string sAppID, std::string sMsgID, int dis
             it = mRequestQueue[displayId].erase(it);
             delete ttsRequest;
             ttsRequest = nullptr;
+            del_ret = true;
             break; //msgID is unique
         }
         else if ( QueueAppID.compare(sAppID) == 0)
@@ -155,6 +157,7 @@ void RequestQueue::removeRequest(std::string sAppID, std::string sMsgID, int dis
                 it = mRequestQueue[displayId].erase(it);
                 delete ttsRequest;
                 ttsRequest = nullptr;
+                del_ret = true;
             }
         }
         else
@@ -162,6 +165,7 @@ void RequestQueue::removeRequest(std::string sAppID, std::string sMsgID, int dis
             ++it;
         }
     }
+    return del_ret;
 }
 void RequestQueue::clearQueue(int displayId)
 {

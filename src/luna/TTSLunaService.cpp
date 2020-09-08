@@ -213,9 +213,9 @@ bool TTSLunaService::stop(LSMessage &message)
    }
    else
    {
-      LOG_DEBUG("Stop Request Not Sent\n");
-      const std::string errorStr = TTSErrors::getTTSErrorString(TTSErrors::TTS_INTERNAL_ERROR);
-      LSUtils::respondWithError(request, errorStr, TTSErrors::TTS_INTERNAL_ERROR);
+      LOG_DEBUG("Stop Request Not Completed : ID Not found\n");
+      const std::string errorStr = TTSErrors::getTTSErrorString(TTSErrors::INVALID_PARAM);//Error: Not found in Queue
+      LSUtils::respondWithError(request, errorStr, TTSErrors::INVALID_PARAM);
       return true;
    }
 

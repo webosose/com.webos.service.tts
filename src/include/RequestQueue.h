@@ -34,7 +34,7 @@ public:
     void addRequest(Request* request, int displayId);
     void start(int displayId);
     void stop(int displayId);
-    void removeRequest(std::string sAppID, std::string sMsgID, int displayId);
+    bool removeRequest(std::string sAppID, std::string sMsgID, int displayId);
     void clearQueue(int displayId);
 
 private:

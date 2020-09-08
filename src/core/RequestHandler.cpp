@@ -66,6 +66,8 @@ bool RequestHandler::sendRequest(TTSRequest* request, int displayId)
         StopRequest* ptrStopRequest = reinterpret_cast<StopRequest*>(request->getRequest());
         std::string stopAppID = ptrStopRequest->sAppID;
         std::string stopMsgID = ptrStopRequest->sMsgID;
+        bool queueRet = false;
+        bool runningRet = false;
         LOG_DEBUG("RequestHandler::sendRequest: Before CheckToStopRunningSpeak \n");
 
         if( CheckToStopRunningSpeak(mEngineHandler->getRunningSpeakRequest(displayId),request ) )
@@ -75,6 +77,7 @@ bool RequestHandler::sendRequest(TTSRequest* request, int displayId)
                 mControlRequestQueueDisplay2.addRequest(request, displayId);
              else
                 mControlRequestQueueDisplay1.addRequest(request, displayId);
+             runningRet = true;
         }
         else
         {
@@ -82,9 +85,11 @@ bool RequestHandler::sendRequest(TTSRequest* request, int displayId)
             request = nullptr;
         }
 	if (displayId)
-            mSpeakRequestQueueDisplay2.removeRequest(stopAppID,stopMsgID, displayId);
+            queueRet = mSpeakRequestQueueDisplay2.removeRequest(stopAppID,stopMsgID, displayId);
         else
-            mSpeakRequestQueueDisplay1.removeRequest(stopAppID,stopMsgID, displayId);
+            queueRet = mSpeakRequestQueueDisplay1.removeRequest(stopAppID,stopMsgID, displayId);
+
+        return (runningRet) ? runningRet : queueRet;
     }
     else if (request->getType() == GET_LANGUAGES )
     {
