@@ -99,7 +99,7 @@ bool TTSLunaService::speak(LSMessage &message)
     }
     else
     {
-        if((requestObj["text"].asString(speakRequest->text_to_speak)) != CONV_OK);
+        if((requestObj["text"].asString(speakRequest->text_to_speak)) != CONV_OK)
             LOG_DEBUG("Speak : Text not present to Request");
 
         speakRequest->sh = this->get();
