@@ -48,27 +48,32 @@ void term_handler(int signum)
 
 int main(int argc, char **argv)
 {
-    LOG_TRACE("Entering function %s", __FUNCTION__);
+    try {
+        LOG_TRACE("Entering function %s", __FUNCTION__);
 
-    signal(SIGTERM, term_handler);
-    signal(SIGABRT, term_handler);
+        signal(SIGTERM, term_handler);
+        signal(SIGABRT, term_handler);
 
-    GMainLoop *mainLoop = g_main_loop_new(nullptr, FALSE);
-    if (mainLoop == NULL) {
-        LOG_DEBUG("Failed to create g_main_loop!");
-        return EXIT_FAILURE;
-    }
+        GMainLoop *mainLoop = g_main_loop_new(nullptr, FALSE);
+        if (mainLoop == NULL) {
+            LOG_DEBUG("Failed to create g_main_loop!");
+            return EXIT_FAILURE;
+        }
 
-    std::unique_ptr<TTSManager> ttsManager(new TTSManager());
-    if(!ttsManager || !ttsManager->init(mainLoop))
-    {
-        LOG_DEBUG("TTS Manager registration failed");
+        std::unique_ptr<TTSManager> ttsManager(new TTSManager());
+        if(!ttsManager || !ttsManager->init(mainLoop))
+        {
+            LOG_DEBUG("TTS Manager registration failed");
+            g_main_loop_unref(mainLoop);
+            return EXIT_FAILURE;
+        }
+        g_main_loop_run(mainLoop);
+        ttsManager.reset();
         g_main_loop_unref(mainLoop);
-        return EXIT_FAILURE;
     }
-    g_main_loop_run(mainLoop);
-    ttsManager.reset();
-    g_main_loop_unref(mainLoop);
+    catch(... ) {
+        LOG_DEBUG("TTS Manager registration failed");
+    }
 
     return 0;
 }
