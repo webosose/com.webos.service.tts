@@ -1,15 +1,14 @@
 {
-"tts": [
-    "com.webos.service.tts/speak"
-],
-"tts.internal": [
-    "com.webos.service.tts/start",
-    "com.webos.service.tts/stop",
-    "com.webos.service.tts/speak",
-    "com.webos.service.tts/speakVKB",
-    "com.webos.service.tts/getStatus",
-    "com.webos.service.tts/getAvailableLanguages",
-    "com.webos.service.tts/msgFeedback",
-    "com.webos.service.tts/setAudioGuidanceOnOff"
-]
+    "tts.operation": [
+        "com.webos.service.tts/speak",
+        "com.webos.service.tts/stop",
+        "com.webos.service.tts/getStatus",
+        "com.webos.service.tts/getAvailableLanguages"
+    ],
+    "tts.managment": [
+        "com.webos.service.tts/start",
+        "com.webos.service.tts/speakVKB",
+        "com.webos.service.tts/msgFeedback",
+        "com.webos.service.tts/setAudioGuidanceOnOff"
+    ]
 }
