@@ -1,5 +1,5 @@
 {
    "com.webos.service.tts":[
-   "media", "settings"
+   "audio.query", "settings.query"
    ]
 }
