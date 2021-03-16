@@ -31,7 +31,7 @@ const double dTTSSpeechRate = 0.0;
 LSHandle* TTSLunaService::lsHandle = nullptr;
 
 TTSLunaService::TTSLunaService(RequestHandler* requestHandler, std::shared_ptr<EngineHandler> engineHandler)
-        : LS::Handle(LS::registerService(service_name.c_str())), mRequestHandler(requestHandler), mEngineHandler(engineHandler), mParamListManager(nullptr)
+        : LS::Handle(LS::registerService(service_name.c_str())), mRequestHandler(requestHandler), mEngineHandler(engineHandler)
 {
     TTSLunaService::lsHandle = this->get();
     registerService();

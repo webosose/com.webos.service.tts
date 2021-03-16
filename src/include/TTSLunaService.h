@@ -43,7 +43,6 @@ public:
 private :
     RequestHandler* mRequestHandler;
     std::shared_ptr<EngineHandler> mEngineHandler;
-    ParameterListManager* mParamListManager;
     Parameters* mParameterList;
     static LSHandle* lsHandle;
 
