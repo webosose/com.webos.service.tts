@@ -20,6 +20,7 @@
 #include <TTSLunaService.h>
 #include <TTSRequestTypes.h>
 #include <StatusHandler.h>
+#include <TTSUtils.h>
 
 #define GET_SYSTEM_SETTINGS  "luna://com.webos.service.settings/getSystemSettings"
 #define GET_VOLUME  "luna://com.webos.service.audio/master/getVolume"
@@ -86,8 +87,9 @@ bool TTSLunaService::speak(LSMessage &message)
         LSUtils::respondWithError(request, errorStr, TTSErrors::INVALID_JSON_FORMAT);
         return true;
     }
-    if ((requestObj["displayId"].asNumber(displayId)) != CONV_OK)
-        LOG_DEBUG("Speak : Display Id not present");
+
+    if (!TTSUtils::getInstance().isValidDisplayId(request, requestObj, displayId))
+        return true;
 
     std::string textString;
     SpeakRequest *speakRequest = new (std::nothrow)SpeakRequest;
@@ -188,10 +190,10 @@ bool TTSLunaService::stop(LSMessage &message)
    std::string applicationID = requestObj["appID"].asString();
    std::string MessageID = requestObj["msgID"].asString();
    bool bfadeOut = requestObj["fadeOut"].asBool();
-   if (requestObj["displayId"].asNumber(displayId) != CONV_OK)
-   {
-       LOG_DEBUG("DisplayId present in the stop request\n");
-   }
+
+   if (!TTSUtils::getInstance().isValidDisplayId(request, requestObj, displayId))
+       return true;
+
    StopRequest *stopRequest = new (std::nothrow) StopRequest;
    if(stopRequest == nullptr){
        return true;
@@ -255,10 +257,8 @@ bool TTSLunaService::getAvailableLanguages(LSMessage &message)
         return true;
     }
 
-    if ((requestObj["displayId"].asNumber(displayId)) != CONV_OK)
-    {
-        LOG_DEBUG("getAvailableLanguages : DisplayId not present, hence default displayId = 0");
-    }
+    if (!TTSUtils::getInstance().isValidDisplayId(request, requestObj, displayId))
+        return true;
 
     GetLanguageRequest* ptrGetLanguageRequest = new (std::nothrow)GetLanguageRequest();
     if(ptrGetLanguageRequest == nullptr){
@@ -328,8 +328,9 @@ bool TTSLunaService::getStatus(LSMessage &message)
         LSUtils::respondWithError(request, errorStr, TTSErrors::INVALID_JSON_FORMAT);
         return true;
     }
-    if ((requestObj["displayId"].asNumber(displayId)) != CONV_OK)
-        LOG_DEBUG("getStatus : display Id not present, Hence default displayId = 0");
+
+    if (!TTSUtils::getInstance().isValidDisplayId(request, requestObj, displayId))
+        return true;
 
     GetStatusRequest* getStatusRequest = new (std::nothrow)GetStatusRequest;
     if(getStatusRequest == nullptr){
@@ -629,3 +630,4 @@ bool TTSLunaService::handle_getSettings_callback(LSHandle *sh, LSMessage *messag
     delete pgetStatusRequest;
     return true;
 }
+
