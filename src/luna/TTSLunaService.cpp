@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2020 LG Electronics, Inc.
+// Copyright (c) 2018-2022 LG Electronics, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,7 +18,6 @@
 #include <TTSErrors.h>
 #include <TTSLog.h>
 #include <TTSLunaService.h>
-#include <TTSRequestTypes.h>
 #include <StatusHandler.h>
 #include <TTSUtils.h>
 
@@ -381,6 +380,7 @@ bool TTSLunaService::getStatus(LSMessage &message)
 
     LSError lserror;
     LSErrorInit(&lserror);
+    getStatusRequest->ref();
     if (!LSCallOneReply( TTSLunaService::lsHandle,
                GET_VOLUME,
                R"({})",
@@ -389,6 +389,8 @@ bool TTSLunaService::getStatus(LSMessage &message)
                LOG_ERROR(MSGID_ERROR_CALL, 0, lserror.message);
                LSErrorFree(&lserror);
     }
+
+    getStatusRequest->ref();
     if (!LSCallOneReply( TTSLunaService::lsHandle,
                GET_SYSTEM_SETTINGS,
                R"({"category": "option","keys": ["menuLanguage"]})",
@@ -547,31 +549,39 @@ void TTSLunaService::update(Parameters* paramList, LS::Message &message)
     responseCallback(paramList,message);
 }
 
-void TTSLunaService::statusResponse(TTSStatus* pTTSStatus, LS::Message& message)
+void TTSLunaService::statusResponse(TTSStatus* pTTSStatus, LS::Message& message, bool status)
 {
-    std::string payload;
-    pbnjson::JValue responseObj = pbnjson::Object();
-    pbnjson::JValue configJSON = pbnjson::Object();
-    configJSON.put("pitch", pTTSStatus->pitch);
-    configJSON.put("ttsCurrLang", pTTSStatus->ttsLanguageStr);
-    configJSON.put("speech rate", pTTSStatus->speechRate);
-    configJSON.put("status", pTTSStatus->status);
-    configJSON.put("volume", pTTSStatus->volume);
-    configJSON.put("ttsMenuLang", pTTSStatus->ttsMenuLangStr);
+    if(status) {
+        std::string payload;
+        pbnjson::JValue responseObj = pbnjson::Object();
+        pbnjson::JValue configJSON = pbnjson::Object();
 
-    responseObj.put("status", configJSON);
-    responseObj.put("returnValue", true);
+        if(pTTSStatus) {
+            configJSON.put("pitch", pTTSStatus->pitch);
+            configJSON.put("ttsCurrLang", pTTSStatus->ttsLanguageStr);
+            configJSON.put("speech rate", pTTSStatus->speechRate);
+            configJSON.put("status", pTTSStatus->status);
+            configJSON.put("volume", pTTSStatus->volume);
+            configJSON.put("ttsMenuLang", pTTSStatus->ttsMenuLangStr);
+        }
 
-    LSUtils::generatePayload(responseObj, payload);
-    message.respond(payload.c_str());
+        responseObj.put("status", configJSON);
+        responseObj.put("returnValue", status);
+        LSUtils::generatePayload(responseObj, payload);
+        message.respond(payload.c_str());
+    } else {
+        const std::string errorStr = TTSErrors::getTTSErrorString(TTSErrors::TTS_INTERNAL_ERROR);
+        LSUtils::respondWithError(message, errorStr, TTSErrors::TTS_INTERNAL_ERROR);
+    }
 }
 
 bool TTSLunaService::handle_getVolume_callback(LSHandle *sh, LSMessage *message, void *ctx)
 {
     LOG_DEBUG("handle_getVolume_callback entry\n");
-    if (nullptr == ctx){
+
+    GetStatusRequest *pgetStatusRequest = static_cast<GetStatusRequest*>(ctx);
+    if (!pgetStatusRequest)
         return false;
-    }
 
     LSMessageRef(message);
     int volume = 0;
@@ -580,12 +590,13 @@ bool TTSLunaService::handle_getVolume_callback(LSHandle *sh, LSMessage *message,
     msgPayload = LSMessageGetPayload(message);
     pbnjson::JValue root = pbnjson::JDomParser::fromString(msgPayload);
     if(!LSUtils::parsePayload(msgPayload, root)) {
+        finalize_getstatus_request(pgetStatusRequest, false);
         LSMessageUnref(message);
         LOG_DEBUG("handle_getVolume_callback Failed to Parse message\n");
         return false;
     }
     LOG_DEBUG("getVolume Json object from Audio = %s \n", root.stringify().c_str());
-    GetStatusRequest* pgetStatusRequest = static_cast<GetStatusRequest *> (ctx);
+
     pbnjson::JValue volumeStatus = root["volumeStatus"];
     LOG_DEBUG("volumeStatus Json Object from Audio = %s \n", volumeStatus.stringify().c_str());
 
@@ -595,7 +606,11 @@ bool TTSLunaService::handle_getVolume_callback(LSHandle *sh, LSMessage *message,
     if( volumeStatus.hasKey("volume"))
         volume = volumeStatus["volume"].asNumber<int>();
 
-    pgetStatusRequest->pTTSStatus->volume = volume;
+    if(pgetStatusRequest->pTTSStatus)
+        pgetStatusRequest->pTTSStatus->volume = volume;
+
+    finalize_getstatus_request(pgetStatusRequest, !pgetStatusRequest->hasError());
+
     LOG_DEBUG("handle_getVolume_callback volume = %d", volume);
     LSMessageUnref(message);
     return true;
@@ -603,18 +618,20 @@ bool TTSLunaService::handle_getVolume_callback(LSHandle *sh, LSMessage *message,
 
 bool TTSLunaService::handle_getSettings_callback(LSHandle *sh, LSMessage *message, void *ctx)
 {
-     if (nullptr == ctx){
+    GetStatusRequest* pgetStatusRequest = static_cast<GetStatusRequest *> (ctx);
+    if(!pgetStatusRequest)
         return false;
-    }
+
     LSMessageRef(message);
     const char *msgPayload;
     msgPayload = LSMessageGetPayload(message);
     pbnjson::JValue root = pbnjson::JDomParser::fromString(msgPayload);
     if(!LSUtils::parsePayload(msgPayload, root)) {
+        finalize_getstatus_request(pgetStatusRequest, false);
         LSMessageUnref(message);
         return false;
     }
-    GetStatusRequest* pgetStatusRequest = static_cast<GetStatusRequest *> (ctx);
+
     std::string MenuLanghStr;
     if(root["settings"].isObject())
     {
@@ -623,11 +640,23 @@ bool TTSLunaService::handle_getSettings_callback(LSHandle *sh, LSMessage *messag
             MenuLanghStr = j_locale["menuLanguage"].asString();
         }
     }
-    pgetStatusRequest->pTTSStatus->ttsMenuLangStr = MenuLanghStr ;
-    pgetStatusRequest->replyCB(pgetStatusRequest->pTTSStatus, pgetStatusRequest->message);
+    if(pgetStatusRequest->pTTSStatus)
+        pgetStatusRequest->pTTSStatus->ttsMenuLangStr = MenuLanghStr ;
+
+    finalize_getstatus_request(pgetStatusRequest, !pgetStatusRequest->hasError());
     LSMessageUnref(message);
-    delete pgetStatusRequest->pTTSStatus;
-    delete pgetStatusRequest;
     return true;
 }
 
+void TTSLunaService::finalize_getstatus_request(GetStatusRequest* getStatusRequest, bool status)
+{
+    getStatusRequest->unref();
+    if(!getStatusRequest->hasRef()) {
+        getStatusRequest->replyCB(getStatusRequest->pTTSStatus, getStatusRequest->message, status);
+        if(getStatusRequest->pTTSStatus)
+            delete getStatusRequest->pTTSStatus;
+        delete getStatusRequest;
+    } else {
+        getStatusRequest->setError();
+    }
+}
