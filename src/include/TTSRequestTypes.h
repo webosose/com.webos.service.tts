@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2020 LG Electronics, Inc.
+// Copyright (c) 2018-2022 LG Electronics, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -63,9 +63,16 @@ typedef struct GetStatusRequest
     const REQUEST_TYPE commandId = GET_STATUS;
     LSHandle* sh;
     TTSStatus* pTTSStatus;
-    void (*replyCB)(TTSStatus* pTTSStatus, LS::Message &message);
+    void (*replyCB)(TTSStatus*, LS::Message&, bool);
     LS::Message message;
     int displayId;
+    uint8_t count = 0;
+    bool error = false;
+    void ref() {++count;}
+    void unref() {--count;}
+    bool hasRef() {return count;}
+    void setError(){error = true;}
+    bool hasError(){return error;}
 } GetStatusRequest;
 
 typedef struct GetLanguageRequest

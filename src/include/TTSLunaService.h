@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2019 LG Electronics, Inc.
+// Copyright (c) 2018-2022 LG Electronics, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -24,6 +24,7 @@
 #include <TTSLunaUtils.h>
 #include <TTSParameters.h>
 #include <StatusHandler.h>
+#include <TTSRequestTypes.h>
 
 class TTSLunaService: public LS::Handle, public StatusObserver
 {
@@ -53,9 +54,10 @@ private :
     void setLSHandle(LSHandle* handle);
 
     void update(Parameters* paramList, LS::Message &message);
-    static void statusResponse(TTSStatus* pTTSStatus, LS::Message& message);
+    static void statusResponse(TTSStatus* pTTSStatus, LS::Message& message, bool status = true);
     static bool handle_getVolume_callback(LSHandle *sh, LSMessage *reply, void *ctx);
     static bool handle_getSettings_callback(LSHandle *sh, LSMessage *reply, void *ctx);
+    static void finalize_getstatus_request(GetStatusRequest*, bool status);
 };
 #endif /* SRC_LUNA_TTSLUNASERVICE_H_ */
 
