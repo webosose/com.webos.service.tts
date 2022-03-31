@@ -597,14 +597,11 @@ bool TTSLunaService::handle_getVolume_callback(LSHandle *sh, LSMessage *message,
     }
     LOG_DEBUG("getVolume Json object from Audio = %s \n", root.stringify().c_str());
 
-    pbnjson::JValue volumeStatus = root["volumeStatus"];
+    auto volumeStatus = root["volumeStatus"];
     LOG_DEBUG("volumeStatus Json Object from Audio = %s \n", volumeStatus.stringify().c_str());
 
-    if (!volumeStatus.isArray())
-            LOG_DEBUG("handle_getVolume_callback : volumeStatus is not an array \n");
-
     if( volumeStatus.hasKey("volume"))
-        volume = volumeStatus["volume"].asNumber<int>();
+        volume = volumeStatus["volume"].asNumber<int32_t>();
 
     if(pgetStatusRequest->pTTSStatus)
         pgetStatusRequest->pTTSStatus->volume = volume;
@@ -628,10 +625,12 @@ bool TTSLunaService::handle_getSettings_callback(LSHandle *sh, LSMessage *messag
     pbnjson::JValue root = pbnjson::JDomParser::fromString(msgPayload);
     if(!LSUtils::parsePayload(msgPayload, root)) {
         finalize_getstatus_request(pgetStatusRequest, false);
+        LOG_DEBUG("handle_getSettings_callback Failed to Parse message\n");
         LSMessageUnref(message);
         return false;
     }
 
+    LOG_DEBUG("getSettings Json object from Audio = %s \n", root.stringify().c_str());
     std::string MenuLanghStr;
     if(root["settings"].isObject())
     {
@@ -656,7 +655,7 @@ void TTSLunaService::finalize_getstatus_request(GetStatusRequest* getStatusReque
         if(getStatusRequest->pTTSStatus)
             delete getStatusRequest->pTTSStatus;
         delete getStatusRequest;
-    } else {
+    } else if (!status){
         getStatusRequest->setError();
     }
 }
