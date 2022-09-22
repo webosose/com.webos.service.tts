@@ -34,7 +34,6 @@ public:
     bool speak(LSMessage &message);
     bool speakVKB(LSMessage &message);
     bool stop(LSMessage &message);
-    bool start(LSMessage &message);
     bool setAudioGuidanceOnOff(LSMessage &message);
     bool getAvailableLanguages(LSMessage &message);
     bool getStatus(LSMessage &message);
