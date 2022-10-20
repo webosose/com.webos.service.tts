@@ -50,7 +50,6 @@ void TTSLunaService::registerService()
     LS_CATEGORY_METHOD(speak)
     LS_CATEGORY_METHOD(speakVKB)
     LS_CATEGORY_METHOD(stop)
-    LS_CATEGORY_METHOD(start)
     LS_CATEGORY_METHOD(setAudioGuidanceOnOff)
     LS_CATEGORY_METHOD(getAvailableLanguages)
     LS_CATEGORY_METHOD(getStatus)
@@ -155,19 +154,6 @@ bool TTSLunaService::speakVKB(LSMessage &message)
     LS::Message request(&message);
     const std::string errorStr = TTSErrors::getTTSErrorString(TTSErrors::TTS_ERROR_NOT_SUPPORTED);
     LSUtils::respondWithError(request, errorStr, TTSErrorCodes::TTS_ERROR_NOT_SUPPORTED);
-    return true;
-}
-
-bool TTSLunaService::start(LSMessage &message)
-{
-    LS::Message request(&message);
-    std::string payload;
-
-    pbnjson::JValue responseObj = pbnjson::Object();
-    responseObj.put("returnValue", true);
-
-    LSUtils::generatePayload(responseObj, payload);
-    request.respond(payload.c_str());
     return true;
 }
 
