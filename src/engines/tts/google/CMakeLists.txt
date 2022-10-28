@@ -26,6 +26,7 @@ set(src ${CMAKE_CURRENT_SOURCE_DIR}/GoogleTTSEngine.cpp
     ${GOOGLE_SOURCE}
 )
  set(deps
+     grpc
      grpc++
      protobuf
 )
