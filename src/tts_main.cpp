@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2019 LG Electronics, Inc.
+// Copyright (c) 2018-2022 LG Electronics, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -43,7 +43,9 @@ void term_handler(int signum)
     }
 
     LOG_DEBUG("signal received.. signal[%s]", str);
-    g_main_loop_quit(mainLoop);
+    if (g_main_loop_is_running(mainLoop)) {
+        g_main_loop_quit(mainLoop);
+    }
 }
 
 int main(int argc, char **argv)
