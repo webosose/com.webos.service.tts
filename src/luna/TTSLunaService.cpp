@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2022 LG Electronics, Inc.
+// Copyright (c) 2018-2023 LG Electronics, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -30,17 +30,25 @@ const double dTTSSpeechRate = 0.0;
 
 LSHandle* TTSLunaService::lsHandle = nullptr;
 
-TTSLunaService::TTSLunaService(RequestHandler* requestHandler, std::shared_ptr<EngineHandler> engineHandler)
-        : LS::Handle(LS::registerService(service_name.c_str())), mRequestHandler(requestHandler), mEngineHandler(engineHandler)
-{
-    TTSLunaService::lsHandle = this->get();
+TTSLunaService::TTSLunaService() :
+        LS::Handle(LS::registerService(service_name.c_str())) {
     registerService();
     LOG_DEBUG("TTSLunaService::TTSLunaService : Function Starting");
+}
+
+void TTSLunaService::init() {
+    TTSLunaService::lsHandle = this->get();
+    mEngineHandler = std::make_shared<EngineHandler>();
+    mRequestHandler = new (std::nothrow) RequestHandler(mEngineHandler);
+    if(mRequestHandler)
+        mRequestHandler->start();
 }
 
 TTSLunaService::~TTSLunaService()
 {
     StatusHandler::GetInstance()->Unregister(this);
+    mRequestHandler->stop();
+    delete mRequestHandler;
 }
 
 void TTSLunaService::registerService()
@@ -57,10 +65,12 @@ void TTSLunaService::registerService()
     LS_CREATE_CATEGORY_END
 
     try {
-        this->registerCategory("/", LS_CATEGORY_TABLE_NAME(rootAPI), nullptr, nullptr);
+        this->registerCategory("/", LS_CATEGORY_TABLE_NAME(rootAPI), nullptr,
+                nullptr);
         this->setCategoryData("/", this);
     } catch (LS::Error &lunaError) {
-        //LOG_ERROR(MSGID_LUNA_ERROR_RESPONSE, "%s", lunaError.get()->message);
+        LOG_ERROR(MSGID_LUNA_ERROR_RESPONSE, 0,
+                "Exception on Luna API registration: %s", lunaError.what());
     }
     StatusHandler::GetInstance()->Register(this);
 }
@@ -74,7 +84,7 @@ bool TTSLunaService::speak(LSMessage &message)
     pbnjson::JValue responseObj = pbnjson::Object();
 
     int parseError = 0;
-    int displayId = 0;
+    unsigned int displayId = 0;
     bool retVal = false;
 
     const std::string schema = STRICT_SCHEMA(PROPS_7(PROP(text, string), PROP(clear, boolean), PROP(subscribe, boolean), PROP(appID, string), PROP(feedback, boolean), PROP(language, string), PROP(displayId, integer))REQUIRED_1(text));
@@ -82,7 +92,12 @@ bool TTSLunaService::speak(LSMessage &message)
     if (!LSUtils::parsePayload(request.getPayload(), requestObj, schema, &parseError))
     {
         const std::string errorStr = TTSErrors::getTTSErrorString(TTSErrors::INVALID_JSON_FORMAT);
-        LSUtils::respondWithError(request, errorStr, TTSErrors::INVALID_JSON_FORMAT);
+        try {
+            LSUtils::respondWithError(request, errorStr, TTSErrors::INVALID_JSON_FORMAT);
+        } catch (LS::Error &lunaError) {
+            LOG_ERROR(MSGID_LUNA_ERROR_RESPONSE, 0,
+                    "Exception on Luna API speak error response: %s", lunaError.what());
+        }
         return true;
     }
 
@@ -93,7 +108,12 @@ bool TTSLunaService::speak(LSMessage &message)
     SpeakRequest *speakRequest = new (std::nothrow)SpeakRequest;
     if(speakRequest == nullptr){
         const std::string errorStr = TTSErrors::getTTSErrorString(TTSErrors::TTS_MEMORY_ERROR);
-        LSUtils::respondWithError(request, errorStr, TTSErrors::TTS_MEMORY_ERROR);
+        try {
+            LSUtils::respondWithError(request, errorStr, TTSErrors::TTS_MEMORY_ERROR);
+        } catch (LS::Error &lunaError) {
+            LOG_ERROR(MSGID_LUNA_ERROR_RESPONSE, 0,
+                    "Exception on Luna API SpeakRequest error response: %s", lunaError.what());
+        }
         LOG_ERROR(MSGID_TTS_MEMORY_ERROR, 0, "Failed To Allocatememory for SpeakRequest");
         return true;
     }
@@ -109,9 +129,12 @@ bool TTSLunaService::speak(LSMessage &message)
         if ((speakRequest->text_to_speak).empty())
         {
             const std::string errorStr = TTSErrors::getTTSErrorString(TTSErrors::INPUT_TEXT_EMPTY);
-            LSUtils::respondWithError(request, errorStr, TTSErrors::INPUT_TEXT_EMPTY);
+            try {
+                LSUtils::respondWithError(request, errorStr, TTSErrors::INPUT_TEXT_EMPTY);
+            } catch (const LS::Error& lse) {
+                LOG_ERROR(MSGID_ERROR_CALL, 0, "Exception while sending error response: %s", lse.what());
+            }
             delete speakRequest;
-            speakRequest = nullptr;
             return true;
         }
         addParameters(message);
@@ -123,6 +146,18 @@ bool TTSLunaService::speak(LSMessage &message)
         }
 
         TTSRequest* ttsRequest = new (std::nothrow) TTSRequest(reinterpret_cast<RequestType*>(speakRequest), mEngineHandler);
+        if (!ttsRequest) {
+            const std::string errorStr = TTSErrors::getTTSErrorString(
+                    TTSErrors::TTS_MEMORY_ERROR);
+            try {
+                LSUtils::respondWithError(request, errorStr, TTSErrors::TTS_MEMORY_ERROR);
+            } catch (const LS::Error& lse) {
+                LOG_ERROR(MSGID_ERROR_CALL, 0, "Exception while sending error response: %s", lse.what());
+            }
+            LOG_ERROR(MSGID_TTS_MEMORY_ERROR, 0,
+                    "Failed To Allocatememory for TTSRequest");
+            return true;
+        }
         retVal = mRequestHandler->sendRequest(ttsRequest, displayId);
     }
 
@@ -143,7 +178,12 @@ bool TTSLunaService::speak(LSMessage &message)
     {
         LOG_DEBUG("Speak Request Not Sent\n");
         const std::string errorStr = TTSErrors::getTTSErrorString(TTSErrors::SPEECH_DATA_CREATION_ERROR);
-        LSUtils::respondWithError(request, errorStr, TTSErrors::SPEECH_DATA_CREATION_ERROR);
+        try {
+            LSUtils::respondWithError(request, errorStr, TTSErrors::SPEECH_DATA_CREATION_ERROR);
+        } catch (LS::Error &lunaError) {
+            LOG_ERROR(MSGID_LUNA_ERROR_RESPONSE, 0,
+                    "Exception on Luna API SpeakRequest not sent error response: %s", lunaError.what());
+        }
     }
 
     return true;
@@ -153,7 +193,12 @@ bool TTSLunaService::speakVKB(LSMessage &message)
 {
     LS::Message request(&message);
     const std::string errorStr = TTSErrors::getTTSErrorString(TTSErrors::TTS_ERROR_NOT_SUPPORTED);
-    LSUtils::respondWithError(request, errorStr, TTSErrorCodes::TTS_ERROR_NOT_SUPPORTED);
+    try {
+        LSUtils::respondWithError(request, errorStr, TTSErrorCodes::TTS_ERROR_NOT_SUPPORTED);
+    } catch (LS::Error &lunaError) {
+        LOG_ERROR(MSGID_LUNA_ERROR_RESPONSE, 0,
+                "Exception on Luna API speakVKB error response: %s", lunaError.what());
+    }
     return true;
 }
 
@@ -164,12 +209,17 @@ bool TTSLunaService::stop(LSMessage &message)
    bool retVal = false;
    pbnjson::JValue requestObj;
    int parseError = 0;
-   int displayId = 0;
+   unsigned int displayId = 0;
    const std::string schema = STRICT_SCHEMA(PROPS_4(PROP(msgID, string),PROP(appID, string), PROP(fadeOut, boolean), PROP(displayId, integer)));
    if (!LSUtils::parsePayload(request.getPayload(), requestObj, schema, &parseError))
    {
       const std::string errorStr = TTSErrors::getTTSErrorString(TTSErrors::INVALID_JSON_FORMAT);
-      LSUtils::respondWithError(request, errorStr, TTSErrors::INVALID_JSON_FORMAT);
+      try {
+          LSUtils::respondWithError(request, errorStr, TTSErrors::INVALID_JSON_FORMAT);
+      } catch (LS::Error &lunaError) {
+          LOG_ERROR(MSGID_LUNA_ERROR_RESPONSE, 0,
+                  "Exception on Luna API stop error response: %s", lunaError.what());
+      }
       return true;
    }
    std::string applicationID = requestObj["appID"].asString();
@@ -202,7 +252,12 @@ bool TTSLunaService::stop(LSMessage &message)
    {
       LOG_DEBUG("Stop Request Not Completed : ID Not found\n");
       const std::string errorStr = TTSErrors::getTTSErrorString(TTSErrors::INVALID_PARAM);//Error: Not found in Queue
-      LSUtils::respondWithError(request, errorStr, TTSErrors::INVALID_PARAM);
+      try {
+          LSUtils::respondWithError(request, errorStr, TTSErrors::INVALID_PARAM);
+      } catch (LS::Error &lunaError) {
+          LOG_ERROR(MSGID_LUNA_ERROR_RESPONSE, 0,
+                  "Exception on Luna API Stop Request Not Completed error response: %s", lunaError.what());
+      }
       return true;
    }
 
@@ -218,7 +273,12 @@ bool TTSLunaService::setAudioGuidanceOnOff(LSMessage &message)
 {
     LS::Message request(&message);
     const std::string errorStr = TTSErrors::getTTSErrorString(TTSErrors::TTS_ERROR_NOT_SUPPORTED);
-    LSUtils::respondWithError(request, errorStr, TTSErrorCodes::TTS_ERROR_NOT_SUPPORTED);
+    try {
+        LSUtils::respondWithError(request, errorStr, TTSErrorCodes::TTS_ERROR_NOT_SUPPORTED);
+    } catch (LS::Error &lunaError) {
+        LOG_ERROR(MSGID_LUNA_ERROR_RESPONSE, 0,
+                "Exception on Luna API setAudioGuidanceOnOff error response: %s", lunaError.what());
+    }
     return true;
 }
 
@@ -231,14 +291,19 @@ bool TTSLunaService::getAvailableLanguages(LSMessage &message)
     pbnjson::JValue requestObj;
     int parseError = 0;
     bool retVal = false;
-    int displayId = 0;
+    unsigned int displayId = 0;
 
     /* Added to Support Multiple Devices for OSE */
     const std::string schema = STRICT_SCHEMA(PROPS_1(PROP(displayId, integer)));
     if (!LSUtils::parsePayload(request.getPayload(), requestObj, schema, &parseError))
     {
         const std::string errorStr = TTSErrors::getTTSErrorString(TTSErrors::INVALID_JSON_FORMAT);
-        LSUtils::respondWithError(request, errorStr, TTSErrors::INVALID_JSON_FORMAT);
+        try {
+            LSUtils::respondWithError(request, errorStr, TTSErrors::INVALID_JSON_FORMAT);
+        } catch (LS::Error &lunaError) {
+            LOG_ERROR(MSGID_LUNA_ERROR_RESPONSE, 0,
+                    "Exception on Luna API getAvailableLanguages error response: %s", lunaError.what());
+        }
         return true;
     }
 
@@ -249,7 +314,12 @@ bool TTSLunaService::getAvailableLanguages(LSMessage &message)
     if(ptrGetLanguageRequest == nullptr){
         LOG_ERROR(MSGID_TTS_MEMORY_ERROR, 0, "Memory Allocation Error In GetLanguageRequest");
         const std::string errorStr = TTSErrors::getTTSErrorString(TTSErrors::TTS_MEMORY_ERROR);
-        LSUtils::respondWithError(request, errorStr, TTSErrors::TTS_MEMORY_ERROR);
+        try {
+            LSUtils::respondWithError(request, errorStr, TTSErrors::TTS_MEMORY_ERROR);
+        } catch (LS::Error &lunaError) {
+            LOG_ERROR(MSGID_LUNA_ERROR_RESPONSE, 0,
+                    "Exception on Luna API getAvailableLanguages error response: %s", lunaError.what());
+        }
         return true;
     }
     TTSRequest* ttsRequest = new (std::nothrow)TTSRequest(reinterpret_cast<RequestType*>(ptrGetLanguageRequest), mEngineHandler);
@@ -257,7 +327,12 @@ bool TTSLunaService::getAvailableLanguages(LSMessage &message)
         delete ptrGetLanguageRequest;
         LOG_ERROR(MSGID_TTS_MEMORY_ERROR, 0, "Memory Allocation Error In GetLanguageRequest");
         const std::string errorStr = TTSErrors::getTTSErrorString(TTSErrors::TTS_MEMORY_ERROR);
-        LSUtils::respondWithError(request, errorStr, TTSErrors::TTS_MEMORY_ERROR);
+        try {
+            LSUtils::respondWithError(request, errorStr, TTSErrors::TTS_MEMORY_ERROR);
+        } catch (LS::Error &lunaError) {
+            LOG_ERROR(MSGID_LUNA_ERROR_RESPONSE, 0,
+                    "Exception on Luna API getAvailableLanguages error response: %s", lunaError.what());
+        }
         return true;
     }
     retVal = mRequestHandler->sendRequest(ttsRequest, displayId);
@@ -269,7 +344,12 @@ bool TTSLunaService::getAvailableLanguages(LSMessage &message)
     {
         LOG_DEBUG("Get Available Languages Request Not Sent\n");
         const std::string errorStr = TTSErrors::getTTSErrorString(TTSErrors::TTS_INTERNAL_ERROR);
-        LSUtils::respondWithError(request, errorStr, TTSErrors::TTS_INTERNAL_ERROR);
+        try {
+            LSUtils::respondWithError(request, errorStr, TTSErrors::TTS_INTERNAL_ERROR);
+        } catch (LS::Error &lunaError) {
+            LOG_ERROR(MSGID_LUNA_ERROR_RESPONSE, 0,
+                    "Exception on Luna API getAvailableLanguages error response: %s", lunaError.what());
+        }
         delete ttsRequest;
         ttsRequest = nullptr;
         return true;
@@ -302,7 +382,7 @@ bool TTSLunaService::getStatus(LSMessage &message)
     LS::Message request(&message);
     pbnjson::JValue requestObj;
     int parseError = 0;
-    int displayId = 0;
+    unsigned int displayId = 0;
     bool retVal = false;
     std::string payload;
 
@@ -310,7 +390,12 @@ bool TTSLunaService::getStatus(LSMessage &message)
     if (!LSUtils::parsePayload(request.getPayload(), requestObj, schema, &parseError))
     {
         const std::string errorStr = TTSErrors::getTTSErrorString(TTSErrors::INVALID_JSON_FORMAT);
-        LSUtils::respondWithError(request, errorStr, TTSErrors::INVALID_JSON_FORMAT);
+        try {
+            LSUtils::respondWithError(request, errorStr, TTSErrors::INVALID_JSON_FORMAT);
+        } catch (LS::Error &lunaError) {
+            LOG_ERROR(MSGID_LUNA_ERROR_RESPONSE, 0,
+                    "Exception on Luna API getStatus error response: %s", lunaError.what());
+        }
         return true;
     }
 
@@ -321,7 +406,12 @@ bool TTSLunaService::getStatus(LSMessage &message)
     if(getStatusRequest == nullptr){
         LOG_ERROR(MSGID_TTS_MEMORY_ERROR, 0, "Memory Allocation Error In GetStatusRequest");
         const std::string errorStr = TTSErrors::getTTSErrorString(TTSErrors::TTS_MEMORY_ERROR);
-        LSUtils::respondWithError(request, errorStr, TTSErrors::TTS_MEMORY_ERROR);
+        try {
+            LSUtils::respondWithError(request, errorStr, TTSErrors::TTS_MEMORY_ERROR);
+        } catch (LS::Error &lunaError) {
+            LOG_ERROR(MSGID_LUNA_ERROR_RESPONSE, 0,
+                    "Exception on Luna API getStatus error response: %s", lunaError.what());
+        }
         return true;
     }
     getStatusRequest->pTTSStatus = new (std::nothrow)TTSStatus;
@@ -329,7 +419,12 @@ bool TTSLunaService::getStatus(LSMessage &message)
         delete getStatusRequest;
         LOG_ERROR(MSGID_TTS_MEMORY_ERROR, 0, "Memory Allocation Error In GetStatusRequest");
         const std::string errorStr = TTSErrors::getTTSErrorString(TTSErrors::TTS_MEMORY_ERROR);
-        LSUtils::respondWithError(request, errorStr, TTSErrors::TTS_MEMORY_ERROR);
+        try {
+            LSUtils::respondWithError(request, errorStr, TTSErrors::TTS_MEMORY_ERROR);
+        } catch (LS::Error &lunaError) {
+            LOG_ERROR(MSGID_LUNA_ERROR_RESPONSE, 0,
+                    "Exception on Luna API getStatus error response: %s", lunaError.what());
+        }
         return true;
     }
     getStatusRequest->sh = this->get();
@@ -344,7 +439,12 @@ bool TTSLunaService::getStatus(LSMessage &message)
         getStatusRequest=nullptr;
         LOG_ERROR(MSGID_TTS_MEMORY_ERROR,0, "Memory Allocation Error In GetStatusRequest");
         const std::string errorStr = TTSErrors::getTTSErrorString(TTSErrors::TTS_MEMORY_ERROR);
-        LSUtils::respondWithError(request, errorStr, TTSErrors::TTS_MEMORY_ERROR);
+        try {
+            LSUtils::respondWithError(request, errorStr, TTSErrors::TTS_MEMORY_ERROR);
+        } catch (LS::Error &lunaError) {
+            LOG_ERROR(MSGID_LUNA_ERROR_RESPONSE, 0,
+                    "Exception on Luna API getStatus error response: %s", lunaError.what());
+        }
         return true;
     }
     retVal = mRequestHandler->sendRequest(ptrTTSRequest, displayId);
@@ -357,7 +457,12 @@ bool TTSLunaService::getStatus(LSMessage &message)
     {
         LOG_DEBUG("Get Status Request Not Sent\n");
         const std::string errorStr = TTSErrors::getTTSErrorString(TTSErrors::TTS_INTERNAL_ERROR);
-        LSUtils::respondWithError(request, errorStr, TTSErrors::TTS_INTERNAL_ERROR);
+        try {
+            LSUtils::respondWithError(request, errorStr, TTSErrors::TTS_INTERNAL_ERROR);
+        } catch (LS::Error &lunaError) {
+            LOG_ERROR(MSGID_LUNA_ERROR_RESPONSE, 0,
+                    "Exception on Luna API getStatus error response: %s", lunaError.what());
+        }
     }
 
     getStatusRequest->pTTSStatus->pitch = dTTSPitch;
@@ -395,7 +500,12 @@ bool TTSLunaService::msgFeedback(LSMessage &message)
 {
     LS::Message request(&message);
     const std::string errorStr = TTSErrors::getTTSErrorString(TTSErrors::TTS_ERROR_NOT_SUPPORTED);
-    LSUtils::respondWithError(request, errorStr, TTSErrorCodes::TTS_ERROR_NOT_SUPPORTED);
+    try {
+        LSUtils::respondWithError(request, errorStr, TTSErrorCodes::TTS_ERROR_NOT_SUPPORTED);
+    } catch (LS::Error &lunaError) {
+        LOG_ERROR(MSGID_LUNA_ERROR_RESPONSE, 0,
+                "Exception on Luna API msgFeedback error response: %s", lunaError.what());
+    }
     return true;
 }
 
@@ -409,7 +519,12 @@ void TTSLunaService::responseCallback(Parameters* paramList, LS::Message& messag
     if(paramList->eLang == LANG_ERR)
     {
         const std::string errorStr = TTSErrors::getTTSErrorString(TTSErrors::LANG_NOT_SUPPORTED);
-        LSUtils::respondWithError(message, errorStr, TTSErrors::LANG_NOT_SUPPORTED);
+        try {
+            LSUtils::respondWithError(message, errorStr, TTSErrors::LANG_NOT_SUPPORTED);
+        } catch (LS::Error &lunaError) {
+            LOG_ERROR(MSGID_LUNA_ERROR_RESPONSE, 0,
+                    "Exception on Luna API responseCallback error response: %s", lunaError.what());
+        }
         return;
     }
 
@@ -469,7 +584,7 @@ void TTSLunaService::addParameters(LSMessage &message)
         mParameterList->sAppID = requestObj["appID"].asString();
 
         if (requestObj["displayId"].asNumber(displayId) == CONV_OK)
-            LOG_DEBUG("addParameters : displayId  = %d\n", displayId);
+            LOG_DEBUG("addParameters : displayId  = %zu\n", displayId);
 
         mParameterList->displayId = displayId;
         mParameterList->eTaskStatus = TTS_TASK_NOT_READY;
@@ -501,7 +616,12 @@ void TTSLunaService::addParameters(LSMessage &message)
                 mParameterList->eLang = LANG_ERR;
                 mParameterList->eStatus = TTS_MSG_ERROR;
                 const std::string errorStr = TTSErrors::getTTSErrorString(TTSErrors::LANG_NOT_SUPPORTED);
-                LSUtils::respondWithError(request, errorStr, TTSErrors::LANG_NOT_SUPPORTED);
+                try {
+                    LSUtils::respondWithError(request, errorStr, TTSErrors::LANG_NOT_SUPPORTED);
+                } catch (LS::Error &lunaError) {
+                    LOG_ERROR(MSGID_LUNA_ERROR_RESPONSE, 0,
+                            "Exception on Luna API addParameters error response: %s", lunaError.what());
+                }
             }
         }
 
@@ -557,7 +677,12 @@ void TTSLunaService::statusResponse(TTSStatus* pTTSStatus, LS::Message& message,
         message.respond(payload.c_str());
     } else {
         const std::string errorStr = TTSErrors::getTTSErrorString(TTSErrors::TTS_INTERNAL_ERROR);
-        LSUtils::respondWithError(message, errorStr, TTSErrors::TTS_INTERNAL_ERROR);
+        try {
+            LSUtils::respondWithError(message, errorStr, TTSErrors::TTS_INTERNAL_ERROR);
+        } catch (LS::Error &lunaError) {
+            LOG_ERROR(MSGID_LUNA_ERROR_RESPONSE, 0,
+                    "Exception on Luna API statusResponse error response: %s", lunaError.what());
+        }
     }
 }
 

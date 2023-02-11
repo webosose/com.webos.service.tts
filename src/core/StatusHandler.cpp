@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2019 LG Electronics, Inc.
+// Copyright (c) 2018-2023 LG Electronics, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -42,7 +42,8 @@ StatusHandler::StatusHandler() {
 
 StatusHandler::StatusHandler(const StatusHandler& obj) {
     _obStatusObserver = new (std::nothrow)std::list<StatusObserver *>();
-    *_obStatusObserver = *obj._obStatusObserver;
+    if(_obStatusObserver)
+        *_obStatusObserver = *obj._obStatusObserver;
 }
 
 

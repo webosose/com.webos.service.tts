@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2020 LG Electronics, Inc.
+// Copyright (c) 2018-2023 LG Electronics, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -39,7 +39,7 @@ EngineHandler::~EngineHandler()
     unloadEngine();
 }
 
-bool EngineHandler::handleRequest(TTSRequest* request, int displayId)
+bool EngineHandler::handleRequest(TTSRequest* request, unsigned int displayId)
 {
     LOG_TRACE("Entering function %s", __FUNCTION__);
 
@@ -57,7 +57,7 @@ bool EngineHandler::handleRequest(TTSRequest* request, int displayId)
 
         int ttsRet = false;
         bool audioRet = false;
-        int displayID = 0;
+        unsigned int displayID = 0;
 
         RequestType* pRequestType = request->getRequest();
         SpeakRequest* pSpeakRequest = reinterpret_cast<SpeakRequest*>(pRequestType);
@@ -67,13 +67,14 @@ bool EngineHandler::handleRequest(TTSRequest* request, int displayId)
         meTTSTaskStatus = TTS_TASK_READY;
         mCurrentLanguage = pSpeakRequest->msgParameters->sLangStr;
         displayID = pSpeakRequest->msgParameters->displayId;
+
         pSpeakRequest->msgParameters->eStatus = TTS_MSG_PLAY;
 
-        LOG_DEBUG("Handling Speak Request : displayId = displayID : %d\n", displayID);
+        LOG_DEBUG("Handling Speak Request : displayId = displayID : %zu\n", displayID);
         ttsRet = mTTSEngine[displayID]->speak(pSpeakRequest->text_to_speak, pSpeakRequest->sh, pSpeakRequest->msgParameters->sLangStr, displayID);
         if(ttsRet == TTSErrors::ERROR_NONE)
         {
-            LOG_DEBUG("Handling Speak Request : AudioEngine Play : displayID = %d\n", displayID);
+            LOG_DEBUG("Handling Speak Request : AudioEngine Play : displayID = %zu\n", displayID);
             audioRet = mAudioEngine[displayID]->play(displayID);
         }
         else if(ttsRet == TTSErrors::LANG_NOT_SUPPORTED)
@@ -105,14 +106,14 @@ bool EngineHandler::handleRequest(TTSRequest* request, int displayId)
     else if(request->getType() == STOP)
     {
         LOG_DEBUG("Handling Stop Request\n");
-        int displayID = 0;
+        unsigned int displayID = 0;
         if(nullptr != mRunningTTSRequest[displayId])
         {
             SpeakRequest* pRunningSpeakRequest = reinterpret_cast<SpeakRequest*>(mRunningTTSRequest[displayId]->getRequest());
             displayID = pRunningSpeakRequest->msgParameters->displayId;
             if (displayID == displayId)
             {
-                LOG_DEBUG("displayID && displayId are same = %d\n", displayId);
+                LOG_DEBUG("displayID && displayId are same = %zu\n", displayId);
                 pRunningSpeakRequest->msgParameters->eStatus = TTS_MSG_STOP;
                 (void)mTTSEngine[displayID]->stop(displayId);
                 (void)mAudioEngine[displayID] ->stop(displayId);
@@ -162,22 +163,22 @@ void EngineHandler::loadEngine()
     {
         int displayCount = mDisplayCount.asNumber<int>();
         LOG_DEBUG("displayCount =  %d :", displayCount);
-        for (int displayID = 0; displayID < displayCount; displayID++)
+        for (unsigned int displayID = 0; displayID < displayCount; displayID++)
         {
             mTTSEngine[displayID] = TTSEngineFactory::createTTSEngine(mTTSEngineName.asString());
             if(!mTTSEngine[displayID])
             {
-                LOG_DEBUG("TTSEngine %s %d Not Found", mTTSEngineName.asString().c_str(), displayID);
+                LOG_DEBUG("TTSEngine %s %zu Not Found", mTTSEngineName.asString().c_str(), displayID);
                 return;
             }
-            LOG_DEBUG("TTSEngine %s %d Created", mTTSEngineName.asString().c_str(), displayID);
+            LOG_DEBUG("TTSEngine %s %zu Created", mTTSEngineName.asString().c_str(), displayID);
             mAudioEngine[displayID] = AudioEngineFactory::createAudioEngine(mAudioEngineName.asString());
             if(!mAudioEngine[displayID])
             {
-                LOG_DEBUG("AudioEngine %s %d Not Found", mAudioEngineName.asString().c_str(), displayID);
+                LOG_DEBUG("AudioEngine %s %zu Not Found", mAudioEngineName.asString().c_str(), displayID);
                 return;
             }
-            LOG_DEBUG("AudioEngine %s %d Created", mAudioEngineName.asString().c_str(), displayID);
+            LOG_DEBUG("AudioEngine %s %zu Created", mAudioEngineName.asString().c_str(), displayID);
 
             // TODO: Decide if init required
             mTTSEngine[displayID]->init();
@@ -195,22 +196,23 @@ void EngineHandler::unloadEngine()
     }
 }
 
-TTSRequest* EngineHandler::getRunningSpeakRequest(int displayId)
+TTSRequest* EngineHandler::getRunningSpeakRequest(unsigned int displayId)
 {
     return mRunningTTSRequest[displayId];
 }
 
-void EngineHandler::getStatusInfo(TTSRequest* pTTSRequest, int displayId)
+void EngineHandler::getStatusInfo(TTSRequest* pTTSRequest, unsigned int displayId)
 {
     RequestType* pReqType =  pTTSRequest->getRequest();
     GetStatusRequest* pgetStatusRequest = reinterpret_cast<GetStatusRequest*>(pReqType);
     pgetStatusRequest->pTTSStatus->status =  GET_TASK_STATUS_TEXT(meTTSTaskStatus);
     pgetStatusRequest->pTTSStatus->ttsLanguageStr = mCurrentLanguage;
+
     pgetStatusRequest->pTTSStatus->pitch = mTTSEngine[displayId]->getPitch();
     pgetStatusRequest->pTTSStatus->speechRate = mTTSEngine[displayId]->getSpeakRate();
 }
 
-void EngineHandler::getLanguages(TTSRequest* pTTSRequest, int displayId)
+void EngineHandler::getLanguages(TTSRequest* pTTSRequest, unsigned int displayId)
 {
      RequestType* ptrRequestType = pTTSRequest->getRequest();
      GetLanguageRequest* ptrGetLanguageRequest = reinterpret_cast<GetLanguageRequest*>(ptrRequestType);

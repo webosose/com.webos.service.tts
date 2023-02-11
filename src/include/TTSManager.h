@@ -1,4 +1,4 @@
-// Copyright (c) 2019-2020 LG Electronics, Inc.
+// Copyright (c) 2019-2023 LG Electronics, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -17,31 +17,18 @@
 #ifndef SRC_CORE_TTSMANAGER_H_
 #define SRC_CORE_TTSMANAGER_H_
 
-#include <memory>
 #include <glib-2.0/glib.h>
-#include <EngineHandler.h>
-#include <RequestHandler.h>
-#include <TTSConfig.h>
-#include <TTSLunaService.h>
 
-#define DISPLAY_0 0 //Display One Functionality
-#define DISPLAY_1 1 //Display Two Functionality
-class TTSManager
-{
+#include "TTSConfig.h"
+#include "TTSLunaService.h"
+
+class TTSManager {
 public:
-    TTSManager();
-    virtual ~TTSManager();
-    TTSManager(const TTSManager&) = delete;
-    TTSManager& operator=(const TTSManager&) = delete;
     bool init(GMainLoop *mainLoop);
-    void deInit();
 
 private:
-
-    GMainLoop* mainLoop;
-    std::unique_ptr<TTSLunaService> mLunaService;
-    std::unique_ptr<RequestHandler> mRequestHandler;
-    std::shared_ptr<EngineHandler> mEngineHandler;
+    GMainLoop *mainLoop = nullptr;
+    TTSLunaService mLunaService;
 };
 
 #endif /* SRC_CORE_TTSMANAGER_H_ */

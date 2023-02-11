@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2020 LG Electronics, Inc.
+// Copyright (c) 2018-2023 LG Electronics, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -56,10 +56,10 @@ public:
 
     virtual ~GoogleTTSEngine() {};
     void getStatus();
-    void getSupportedLanguages(std::vector<std::string> &  vecLang, int displayId);
-    int speak(std::string text, LSHandle* sh, std::string language, int displayId);
+    void getSupportedLanguages(std::vector<std::string> &  vecLang, unsigned int displayId);
+    int speak(std::string text, LSHandle* sh, std::string language, unsigned int displayId);
     void start();
-    void stop(int displayId);
+    void stop(unsigned int displayId);
     void init();
     void deInit();
     std::string getName();

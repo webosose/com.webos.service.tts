@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2020 LG Electronics, Inc.
+// Copyright (c) 2018-2023 LG Electronics, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -27,14 +27,14 @@ class RequestHandler
 {
 public:
     RequestHandler(std::shared_ptr<EngineHandler> engineHandler);
-    virtual ~RequestHandler();
-    bool sendRequest(TTSRequest* request, int displayId);
-    void start(int displayId);
-    void stop(int displayId);
+    virtual ~RequestHandler(){};
+    bool sendRequest(TTSRequest* request, unsigned int displayId);
+    void start();
+    void stop();
 
 private:
     bool CheckToStopRunningSpeak(TTSRequest* pRunningRequest, TTSRequest* pRequest);
-    void stopSpeech(int displayId);
+    void stopSpeech(unsigned int displayId);
     RequestQueue mSpeakRequestQueueDisplay1;
     RequestQueue mSpeakRequestQueueDisplay2;
     RequestQueue mControlRequestQueueDisplay1;
