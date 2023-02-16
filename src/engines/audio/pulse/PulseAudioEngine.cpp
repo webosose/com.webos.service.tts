@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2020 LG Electronics, Inc.
+// Copyright (c) 2018-2023 LG Electronics, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -51,7 +51,7 @@ void PulseAudioEngine::pause()
 
 }
 
-bool PulseAudioEngine::play(int displayId)
+bool PulseAudioEngine::play(unsigned int displayId)
 {
     std::string audio_file;
     LOG_TRACE("Entering function %s", __FUNCTION__);
@@ -241,7 +241,7 @@ bool PulseAudioEngine::playAudiotts2(std::string audio_file)
     return returnValue;
 }
 
-bool PulseAudioEngine::stop(int displayId)
+bool PulseAudioEngine::stop(unsigned int displayId)
 {
     LOG_TRACE("Entering function %s", __FUNCTION__);
     if (displayId)

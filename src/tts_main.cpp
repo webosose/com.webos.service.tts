@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2022 LG Electronics, Inc.
+// Copyright (c) 2018-2023 LG Electronics, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,13 +18,12 @@
 #include <glib-2.0/glib.h>
 #include <memory>
 
-#include <TTSLog.h>
-#include <TTSManager.h>
+#include "TTSLog.h"
+#include "TTSManager.h"
 
 static GMainLoop *mainLoop = nullptr;
 
-void term_handler(int signum)
-{
+void term_handler(int signum) {
     LOG_TRACE("Entering function %s", __FUNCTION__);
     const char *str = nullptr;
 
@@ -48,33 +47,33 @@ void term_handler(int signum)
     }
 }
 
-int main(int argc, char **argv)
-{
+int main(int argc, char **argv) {
     try {
         LOG_TRACE("Entering function %s", __FUNCTION__);
 
         signal(SIGTERM, term_handler);
         signal(SIGABRT, term_handler);
 
-        GMainLoop *mainLoop = g_main_loop_new(nullptr, FALSE);
-        if (mainLoop == NULL) {
-            LOG_DEBUG("Failed to create g_main_loop!");
+        mainLoop = g_main_loop_new(nullptr, FALSE);
+        if (!mainLoop) {
+            LOG_ERROR(MSGID_TTS_ERROR, 0, "Failed to create g_main_loop!");
             return EXIT_FAILURE;
         }
 
-        std::unique_ptr<TTSManager> ttsManager(new TTSManager());
-        if(!ttsManager || !ttsManager->init(mainLoop))
-        {
-            LOG_DEBUG("TTS Manager registration failed");
+        TTSManager ttsManager;
+        auto initialized = ttsManager.init(mainLoop);
+        if (!initialized) {
+            LOG_ERROR(MSGID_TTS_ERROR, 0, "TTS Manager registration failed!");
             g_main_loop_unref(mainLoop);
             return EXIT_FAILURE;
         }
+
         g_main_loop_run(mainLoop);
-        ttsManager.reset();
+        LOG_INFO(MSGID_MESSAGE_CALL, 0, "tts mainloop exited.");
         g_main_loop_unref(mainLoop);
-    }
-    catch(... ) {
-        LOG_DEBUG("TTS Manager registration failed");
+    } catch (...) {
+        LOG_ERROR(MSGID_TTS_ERROR, 0,
+                "TTS Manager registration failed with exception!");
     }
 
     return 0;

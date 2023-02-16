@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2020 LG Electronics, Inc.
+// Copyright (c) 2018-2023 LG Electronics, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,72 +16,26 @@
 
 #include <iostream>
 #include <new>
-#include <TTSLog.h>
-#include <TTSManager.h>
 
-TTSManager::TTSManager()
-        : mainLoop(nullptr), mLunaService(nullptr), mRequestHandler(nullptr)
-{
+#include "TTSLog.h"
+#include "TTSManager.h"
 
-}
-
-TTSManager::~TTSManager()
-{
-    deInit();
-}
-
-bool TTSManager::init(GMainLoop *mainLoop)
-{
+bool TTSManager::init(GMainLoop *_mainLoop) {
     LOG_TRACE("Entering function %s", __FUNCTION__);
 
-    this->mainLoop = mainLoop;
+    bool initialized = true;
+    mainLoop = _mainLoop;
 
-    try
-    {
-        mEngineHandler = std::make_shared<EngineHandler>();
-    }
-    catch (std::bad_alloc& eh)
-    {
-        std::cerr << "bad_alloc caught: " << eh.what() << '\n';
-        return false;
-    }
-
-    mRequestHandler = std::unique_ptr<RequestHandler>(new RequestHandler(mEngineHandler));
-    if(mRequestHandler == nullptr)
-        return false;
-    try
-    {
-        mLunaService = std::unique_ptr<TTSLunaService>(new TTSLunaService(mRequestHandler.get(), mEngineHandler));
-        if(mLunaService == nullptr)
-        return false;
-    }
-    catch (std::bad_alloc& eh)
-    {
-        LOG_ERROR( "ttsManager:", 0, "ERROR: TTSLunaservice bad_alloc caught" );
-        return false;
+    try {
+        mLunaService.init();
+    } catch (const std::bad_alloc &eh) {
+        std::cerr << "Exception Memory allocation : " << eh.what() << '\n';
+        LOG_ERROR(MSGID_TTS_MEMORY_ERROR, 0,
+                "Exception Memory allocation failed : %s", eh.what());
+        initialized = false;
     }
 
-    mLunaService->attachToLoop(mainLoop);
-    mRequestHandler->start(DISPLAY_0);
-    mRequestHandler->start(DISPLAY_1);
+    mLunaService.attachToLoop(mainLoop);
 
-    return true;
+    return initialized;
 }
-
-void TTSManager::deInit()
-{
-    LOG_TRACE("Entering function %s", __FUNCTION__);
-
-    try
-    {
-        if (mEngineHandler.get()) {
-            mEngineHandler.reset();
-        }
-        if (mLunaService) {
-            mLunaService->detach();
-        }
-    }catch (LS::Error &lunaError) {
-        LOG_ERROR( "ttsManager:", 0, "ERROR: mLunaService detach thrown an exception" );
-    }
-}
-

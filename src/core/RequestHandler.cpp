@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2020 LG Electronics, Inc.
+// Copyright (c) 2018-2023 LG Electronics, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -17,16 +17,14 @@
 #include <RequestHandler.h>
 #include <StatusHandler.h>
 
-RequestHandler::RequestHandler(std::shared_ptr<EngineHandler> engineHandler) : mSpeakRequestQueueDisplay1("QUEUE_SPEAK1"), mSpeakRequestQueueDisplay2("QUEUE_SPEAK2"), mControlRequestQueueDisplay1("QUEUE_CONTROL_1"), mControlRequestQueueDisplay2("QUEUE_CONTROL_2"), mEngineHandler(engineHandler)
-{
+RequestHandler::RequestHandler(std::shared_ptr<EngineHandler> engineHandler) :
+        mSpeakRequestQueueDisplay1("QUEUE_SPEAK1"), mSpeakRequestQueueDisplay2(
+                "QUEUE_SPEAK2"), mControlRequestQueueDisplay1(
+                "QUEUE_CONTROL_1"), mControlRequestQueueDisplay2(
+                "QUEUE_CONTROL_2"), mEngineHandler(engineHandler) {
 }
 
-RequestHandler::~RequestHandler()
-{
-
-}
-
-bool RequestHandler::sendRequest(TTSRequest* request, int displayId)
+bool RequestHandler::sendRequest(TTSRequest* request, unsigned int displayId)
 {
     LOG_TRACE("Entering function %s", __FUNCTION__);
     LOG_DEBUG("Request Type: %d", request->getType());
@@ -36,7 +34,7 @@ bool RequestHandler::sendRequest(TTSRequest* request, int displayId)
         SpeakRequest* ptrSpeakRequest = reinterpret_cast<SpeakRequest*>(request->getRequest());
         if(ptrSpeakRequest->msgParameters->bClear)
         {
-          LOG_DEBUG("RequestHandler: DisplayId = %d", displayId);
+          LOG_DEBUG("RequestHandler: DisplayId = %zu", displayId);
           TTSRequest* pRunningRequest = mEngineHandler->getRunningSpeakRequest(displayId);
           if(nullptr != pRunningRequest)
           {
@@ -52,14 +50,14 @@ bool RequestHandler::sendRequest(TTSRequest* request, int displayId)
               }
           }
           if (displayId)
-              mSpeakRequestQueueDisplay2.clearQueue(displayId);
+              mSpeakRequestQueueDisplay2.clearQueue();
           else
-              mSpeakRequestQueueDisplay1.clearQueue(displayId);
+              mSpeakRequestQueueDisplay1.clearQueue();
         }
         if (displayId)
-            mSpeakRequestQueueDisplay2.addRequest(request, displayId);
+            mSpeakRequestQueueDisplay2.addRequest(request);
         else
-            mSpeakRequestQueueDisplay1.addRequest(request, displayId);
+            mSpeakRequestQueueDisplay1.addRequest(request);
     }
     else if (request->getType() == STOP )
     {
@@ -74,9 +72,9 @@ bool RequestHandler::sendRequest(TTSRequest* request, int displayId)
         {
              LOG_DEBUG("RequestHandler::sendRequest: After CheckToStopRunningSpeak \n");
              if (displayId)
-                mControlRequestQueueDisplay2.addRequest(request, displayId);
+                mControlRequestQueueDisplay2.addRequest(request);
              else
-                mControlRequestQueueDisplay1.addRequest(request, displayId);
+                mControlRequestQueueDisplay1.addRequest(request);
              runningRet = true;
         }
         else
@@ -85,9 +83,9 @@ bool RequestHandler::sendRequest(TTSRequest* request, int displayId)
             request = nullptr;
         }
 	if (displayId)
-            queueRet = mSpeakRequestQueueDisplay2.removeRequest(stopAppID,stopMsgID, displayId);
+            queueRet = mSpeakRequestQueueDisplay2.removeRequest(stopAppID,stopMsgID);
         else
-            queueRet = mSpeakRequestQueueDisplay1.removeRequest(stopAppID,stopMsgID, displayId);
+            queueRet = mSpeakRequestQueueDisplay1.removeRequest(stopAppID,stopMsgID);
 
         return (runningRet) ? runningRet : queueRet;
     }
@@ -104,42 +102,32 @@ bool RequestHandler::sendRequest(TTSRequest* request, int displayId)
     {
         LOG_DEBUG("Request Type: %d", request->getType());
         if (displayId)
-            mControlRequestQueueDisplay2.addRequest(request, displayId);
+            mControlRequestQueueDisplay2.addRequest(request);
         else
-            mControlRequestQueueDisplay1.addRequest(request, displayId);
+            mControlRequestQueueDisplay1.addRequest(request);
     }
 
     return true;
 }
 
-void RequestHandler::start(int displayId)
+void RequestHandler::start()
 {
     LOG_TRACE("Entering function %s", __FUNCTION__);
 
-    if (displayId)
-        mControlRequestQueueDisplay2.start(displayId);
-    else
-        mControlRequestQueueDisplay1.start(displayId);
-
-    if (displayId)
-        mSpeakRequestQueueDisplay2.start(displayId);
-    else
-        mSpeakRequestQueueDisplay1.start(displayId);
+    mControlRequestQueueDisplay1.start();
+    mSpeakRequestQueueDisplay1.start();
+    mControlRequestQueueDisplay2.start();
+    mSpeakRequestQueueDisplay2.start();
 }
 
-void RequestHandler::stop(int displayId)
+void RequestHandler::stop()
 {
     LOG_TRACE("Entering function %s", __FUNCTION__);
 
-    if (displayId)
-        mSpeakRequestQueueDisplay2.stop(displayId);
-    else
-        mSpeakRequestQueueDisplay1.stop(displayId);
-
-    if (displayId)
-        mControlRequestQueueDisplay2.stop(displayId);
-    else
-        mControlRequestQueueDisplay1.stop(displayId);
+    mSpeakRequestQueueDisplay1.stop();
+    mControlRequestQueueDisplay1.stop();
+    mSpeakRequestQueueDisplay2.stop();
+    mControlRequestQueueDisplay2.stop();
 }
 
 bool RequestHandler::CheckToStopRunningSpeak(TTSRequest* pRunningRequest, TTSRequest* pRequest)
@@ -170,9 +158,9 @@ bool RequestHandler::CheckToStopRunningSpeak(TTSRequest* pRunningRequest, TTSReq
     return bret;
 }
 
-void RequestHandler::stopSpeech(int displayId)
+void RequestHandler::stopSpeech(unsigned int displayId)
 {
-    LOG_DEBUG("RequestHandler::stopSpeechRequest  DisplayId = %d", displayId);
+    LOG_DEBUG("RequestHandler::stopSpeechRequest  DisplayId = %zu", displayId);
     StopRequest *stopRequest = new (std::nothrow)StopRequest;
     if(stopRequest == nullptr){
         return;
@@ -184,7 +172,7 @@ void RequestHandler::stopSpeech(int displayId)
         return;
     }
     if(displayId)
-        mControlRequestQueueDisplay2.addRequest(request, displayId);
+        mControlRequestQueueDisplay2.addRequest(request);
     else
-       mControlRequestQueueDisplay1.addRequest(request, displayId);
+       mControlRequestQueueDisplay1.addRequest(request);
 }

@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2020 LG Electronics, Inc.
+// Copyright (c) 2018-2023 LG Electronics, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -143,7 +143,7 @@ typedef struct Parameters
     std::string sAppID;
     MsgStatus_t eStatus;
     Task_Status_t eTaskStatus;
-    int displayId;
+    unsigned int displayId;
 }Parameters;
 
 static std::string TTS_TaskStatusTable[] = {

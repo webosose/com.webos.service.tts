@@ -1,4 +1,4 @@
-// Copyright (c) 2018 LG Electronics, Inc.
+// Copyright (c) 2018-2023 LG Electronics, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,21 +15,19 @@
 // SPDX-License-Identifier: Apache-2.0
 
 #include <cstdlib>
-#include <TTSLog.h>
 
-static const char* const logContextName = "TTS";
+#include "TTSLog.h"
 
-PmLogContext getTTSPmLogContext()
-{
+static const char *const logContextName = "TTS";
+
+PmLogContext getTTSPmLogContext() {
     LOG_TRACE("Entering function %s", __FUNCTION__);
 
     static PmLogContext logContext = 0;
-    if (0 == logContext)
-    {
-        if (PmLogGetContext(logContextName, &logContext) != kPmLogErr_None)
-        {
+    if (0 == logContext) {
+        if (PmLogGetContext(logContextName, &logContext) != kPmLogErr_None) {
             LOG_ERROR(MSGID_ERROR_CALL, 0, "Failed to get logContext");
-            exit(EXIT_FAILURE);
+            exit (EXIT_FAILURE);
         }
     }
     return logContext;

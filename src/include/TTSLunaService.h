@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2022 LG Electronics, Inc.
+// Copyright (c) 2018-2023 LG Electronics, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@
 #define SRC_LUNA_TTSLUNASERVICE_H_
 
 #include <luna-service2/lunaservice.hpp>
+
 #include <EngineHandler.h>
 #include <ParameterListManager.h>
 #include <RequestHandler.h>
@@ -29,8 +30,9 @@
 class TTSLunaService: public LS::Handle, public StatusObserver
 {
 public:
-    TTSLunaService(RequestHandler* requestHandler, std::shared_ptr<EngineHandler> engineHandler);//, std::shared_ptr<TTSConfig> configHandler );
+    TTSLunaService();
     virtual ~TTSLunaService();
+    void init();
     bool speak(LSMessage &message);
     bool speakVKB(LSMessage &message);
     bool stop(LSMessage &message);
@@ -41,10 +43,10 @@ public:
     bool setParameters(LSMessage &message);
 
 private :
-    RequestHandler* mRequestHandler;
+    RequestHandler *mRequestHandler;
     std::shared_ptr<EngineHandler> mEngineHandler;
-    Parameters* mParameterList;
-    static LSHandle* lsHandle;
+    Parameters *mParameterList;
+    static LSHandle *lsHandle;
 
     void registerService();
     static void responseCallback(Parameters* paramList, LS::Message& message);

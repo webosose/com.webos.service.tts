@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2020 LG Electronics, Inc.
+// Copyright (c) 2018-2023 LG Electronics, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -28,10 +28,10 @@ public:
     PulseAudioEngine();
     virtual ~PulseAudioEngine() {};
     void init();
-    bool play(int displayId);
+    bool play(unsigned int displayId);
     bool playAudiotts1(std::string audio_file);
     bool playAudiotts2(std::string audio_file);
-    bool stop(int displayId);
+    bool stop(unsigned int displayId);
     void pause();
     void resume();
     void deInit();

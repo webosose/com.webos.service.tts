@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2020 LG Electronics, Inc.
+// Copyright (c) 2009-2023 LG Electronics, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -45,7 +45,7 @@ void GoogleTTSEngine::getStatus()
     LOG_TRACE("Entering function %s", __FUNCTION__);
 }
 
-void GoogleTTSEngine::getSupportedLanguages(std::vector<std::string> &  vecLang, int displayId)
+void GoogleTTSEngine::getSupportedLanguages(std::vector<std::string> &  vecLang, unsigned int displayId)
 {
     LOG_TRACE("Entering function %s", __FUNCTION__);
     if(mAvailableLanguages.size() != 0){
@@ -76,7 +76,7 @@ void GoogleTTSEngine::getSupportedLanguages(std::vector<std::string> &  vecLang,
     }
 }
 
-int GoogleTTSEngine::speak(std::string text, LSHandle* sh, std::string language, int displayId)
+int GoogleTTSEngine::speak(std::string text, LSHandle* sh, std::string language, unsigned int displayId)
 {
     LOG_TRACE("Entering function %s", __FUNCTION__);
     if ((mIsStopDisplay2) && (DISPLAY_1== displayId))
@@ -169,7 +169,7 @@ void GoogleTTSEngine::start()
     LOG_TRACE("Entering function %s", __FUNCTION__);
 }
 
-void GoogleTTSEngine::stop(int displayId)
+void GoogleTTSEngine::stop(unsigned int displayId)
 {
     LOG_TRACE("Entering function %s", __FUNCTION__);
     if (displayId)

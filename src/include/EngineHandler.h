@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2020 LG Electronics, Inc.
+// Copyright (c) 2018-2023 LG Electronics, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -31,23 +31,23 @@ public:
     EngineHandler();
     virtual ~EngineHandler();
 
-    bool handleRequest(TTSRequest* request, int displayId);
+    bool handleRequest(TTSRequest* request, unsigned int displayId);
     void loadEngine();
     void unloadEngine();
 
     bool setConfig(bool status_flag);
 
-    TTSRequest* getRunningSpeakRequest(int displayId);
-    void getStatusInfo(TTSRequest* pTTSRequest, int displayId);
-    void getLanguages(TTSRequest* pTTSRequest, int displayId);
+    TTSRequest* getRunningSpeakRequest(unsigned int displayId);
+    void getStatusInfo(TTSRequest* pTTSRequest, unsigned int displayId);
+    void getLanguages(TTSRequest* pTTSRequest, unsigned int displayId);
 private:
-    std::shared_ptr<TTSEngine> mTTSEngine[DUAL_DISPLAYS];
-    std::shared_ptr<AudioEngine> mAudioEngine[DUAL_DISPLAYS];
-    TTSConfig* mConfigHandler;
+    std::shared_ptr<TTSEngine> mTTSEngine[DUAL_DISPLAYS] = {nullptr};
+    std::shared_ptr<AudioEngine> mAudioEngine[DUAL_DISPLAYS] = {nullptr};
+    TTSConfig* mConfigHandler = {nullptr};
     pbnjson::JValue mTTSEngineName;
     pbnjson::JValue mAudioEngineName;
     pbnjson::JValue mDisplayCount;
-    TTSRequest* mRunningTTSRequest[DUAL_DISPLAYS];
+    TTSRequest* mRunningTTSRequest[DUAL_DISPLAYS] = {nullptr};
     Task_Status_t meTTSTaskStatus;
     std::string mCurrentLanguage;
 };

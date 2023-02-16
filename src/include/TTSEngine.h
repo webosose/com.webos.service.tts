@@ -1,4 +1,4 @@
-// Copyright (c) 2019-2020 LG Electronics, Inc.
+// Copyright (c) 2019-2023 LG Electronics, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -26,12 +26,12 @@ public:
     TTSEngine() = default;
     virtual ~TTSEngine() = default;
     virtual void getStatus() = 0;
-    virtual void getSupportedLanguages(std::vector<std::string> &  vecLang, int displayId) = 0;
-    virtual int speak(const std::string text, LSHandle* sh, std::string language, int displayId) = 0;
+    virtual void getSupportedLanguages(std::vector<std::string> &  vecLang, unsigned int displayId) = 0;
+    virtual int speak(const std::string text, LSHandle* sh, std::string language, unsigned int displayId) = 0;
     virtual double getPitch(void) const = 0;
     virtual double getSpeakRate(void) const = 0;
     virtual void start() = 0;
-    virtual void stop(int displayId) = 0;
+    virtual void stop(unsigned int displayId) = 0;
     virtual void init() = 0;
     virtual void deInit() = 0;
     virtual std::string getName()=0;
