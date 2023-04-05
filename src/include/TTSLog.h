@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2019 LG Electronics, Inc.
+// Copyright (c) 2018-2023 LG Electronics, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -23,6 +23,11 @@
 #define MSGID_TTS_MEMORY_ERROR          "TTS_MEMORY_ERROR"
 #define MSGID_LUNA_ERROR_RESPONSE       "LUNA_ERROR_RESPONSE"
 #define MSGID_LUNA_SERVICE_WARNING      "LUNA_SERVICE_WARNING"
+#define MSGID_LUNA_SERVICE              "LUNA_SERVICE"
+#define MSGID_TTS_REQUEST               "TTS_REQUEST"
+#define MSGID_ENGINE_HANDLER            "ENGINE_HANDLER"
+#define MSGID_REQUEST_HANDLER           "REQUEST_HANDLER"
+#define MSGID_REQUEST_QUEUE             "REQUEST_QUEUE"
 
 //#ifdef USE_PMLOG
 #include "PmLogLib.h"

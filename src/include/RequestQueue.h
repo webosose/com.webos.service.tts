@@ -39,7 +39,6 @@ public:
 
 private:
     void dispatchHandler();
-    void popFront();
     void setRequestStatus(Request* request);
     volatile bool mQuit;
     std::string mName;

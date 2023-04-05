@@ -82,4 +82,12 @@ typedef struct GetLanguageRequest
     unsigned int displayId;
 } GetLanguageRequest;
 
+typedef struct SpeakRequestInfo
+{
+    unsigned int displayId;
+    std::string appId;
+    std::string msgId;
+    MsgStatus_t msgStatus;
+} SpeakRequestInfo;
+
 #endif /* SRC_INCLUDE_TTSREQUESTTYPES_H_ */

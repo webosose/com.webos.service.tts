@@ -33,7 +33,7 @@ public:
     void stop();
 
 private:
-    bool CheckToStopRunningSpeak(TTSRequest* pRunningRequest, TTSRequest* pRequest);
+    bool CheckToStopRunningSpeak(SpeakRequestInfo& runningRequest, TTSRequest* pRequest);
     void stopSpeech(unsigned int displayId);
     RequestQueue mSpeakRequestQueueDisplay1;
     RequestQueue mSpeakRequestQueueDisplay2;
