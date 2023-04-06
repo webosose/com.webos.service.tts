@@ -17,11 +17,14 @@
 #ifndef SRC_CORE_ENGINEHANDLER_H_
 #define SRC_CORE_ENGINEHANDLER_H_
 
+#include <mutex>
+
 #include <luna-service2/lunaservice.hpp>
 #include <AudioEngine.h>
 #include <TTSConfig.h>
 #include <TTSEngine.h>
 #include <TTSParameters.h>
+#include <TTSRequestTypes.h>
 
 class TTSRequest;
 class EngineHandler
@@ -37,9 +40,12 @@ public:
 
     bool setConfig(bool status_flag);
 
-    TTSRequest* getRunningSpeakRequest(unsigned int displayId);
     void getStatusInfo(TTSRequest* pTTSRequest, unsigned int displayId);
     void getLanguages(TTSRequest* pTTSRequest, unsigned int displayId);
+    void saveSpeakRequestInfo(SpeakRequest* request, unsigned int displayId);
+    bool getSpeakRequestInfo(unsigned int displayId, SpeakRequestInfo& info);
+    void updateSpeakRequestInfo(unsigned int displayId, MsgStatus_t msgStatus);
+    void removeSpeakRequestInfo(unsigned int displayId);
 private:
     std::shared_ptr<TTSEngine> mTTSEngine[DUAL_DISPLAYS] = {nullptr};
     std::shared_ptr<AudioEngine> mAudioEngine[DUAL_DISPLAYS] = {nullptr};
@@ -47,9 +53,10 @@ private:
     pbnjson::JValue mTTSEngineName;
     pbnjson::JValue mAudioEngineName;
     pbnjson::JValue mDisplayCount;
-    TTSRequest* mRunningTTSRequest[DUAL_DISPLAYS] = {nullptr};
-    Task_Status_t meTTSTaskStatus;
-    std::string mCurrentLanguage;
+    Task_Status_t meTTSTaskStatus[DUAL_DISPLAYS];
+    std::string mCurrentLanguage[DUAL_DISPLAYS];
+    std::map<unsigned int, SpeakRequestInfo> mSpeakRequestInfoMap;
+    std::mutex mRunningInfoMutex[DUAL_DISPLAYS];
 };
 
 #endif /* SRC_CORE_ENGINEHANDLER_H_ */

@@ -27,97 +27,106 @@
 
 EngineHandler::EngineHandler()
 {
-    mCurrentLanguage = "en-US";
-    meTTSTaskStatus = TTS_TASK_NOT_READY;
-    mRunningTTSRequest[DISPLAY_0] = nullptr;
-    mRunningTTSRequest[DISPLAY_1] = nullptr;
+    LOG_INFO(MSGID_ENGINE_HANDLER, 0, "%s", __FUNCTION__);
+    mCurrentLanguage[DISPLAY_0] = "en-US";
+    mCurrentLanguage[DISPLAY_1] = "en-US";
+    meTTSTaskStatus[DISPLAY_0] = TTS_TASK_NOT_READY;
+    meTTSTaskStatus[DISPLAY_1] = TTS_TASK_NOT_READY;
     loadEngine();
 }
 
 EngineHandler::~EngineHandler()
 {
+    LOG_INFO(MSGID_ENGINE_HANDLER, 0, "%s", __FUNCTION__);
     unloadEngine();
 }
 
 bool EngineHandler::handleRequest(TTSRequest* request, unsigned int displayId)
 {
-    LOG_TRACE("Entering function %s", __FUNCTION__);
+    LOG_INFO(MSGID_ENGINE_HANDLER, 0, "%s type: %d disp: %u", __FUNCTION__,
+            request->getType(), displayId);
 
-    if(!mTTSEngine[displayId] ||
-       !mAudioEngine[displayId])
-    {
-        meTTSTaskStatus = TTS_TASK_ERROR;
-        LOG_DEBUG("Engine Not Created\n");
+    if (!mTTSEngine[displayId] || !mAudioEngine[displayId]) {
+        meTTSTaskStatus[displayId] = TTS_TASK_ERROR;
+        LOG_INFO(MSGID_ENGINE_HANDLER, 0, "Engine/(s) Not Created %s",
+                __FUNCTION__);
         return false;
     }
 
-    if(request->getType() == SPEAK)
-    {
-        LOG_DEBUG("Handling Speak Request\n");
-
+    if (request->getType() == SPEAK) {
         int ttsRet = false;
         bool audioRet = false;
         unsigned int displayID = 0;
 
-        RequestType* pRequestType = request->getRequest();
-        SpeakRequest* pSpeakRequest = reinterpret_cast<SpeakRequest*>(pRequestType);
+        RequestType *pRequestType = request->getRequest();
+        SpeakRequest *pSpeakRequest =
+                reinterpret_cast<SpeakRequest*>(pRequestType);
 
         pSpeakRequest->msgParameters->eTaskStatus = TTS_TASK_READY;
-        mRunningTTSRequest[displayId] = request;
-        meTTSTaskStatus = TTS_TASK_READY;
-        mCurrentLanguage = pSpeakRequest->msgParameters->sLangStr;
+        saveSpeakRequestInfo(pSpeakRequest, displayId);
+        meTTSTaskStatus[displayId] = TTS_TASK_READY;
+        mCurrentLanguage[displayId] = pSpeakRequest->msgParameters->sLangStr;
         displayID = pSpeakRequest->msgParameters->displayId;
 
         pSpeakRequest->msgParameters->eStatus = TTS_MSG_PLAY;
 
-        LOG_DEBUG("Handling Speak Request : displayId = displayID : %zu\n", displayID);
-        ttsRet = mTTSEngine[displayID]->speak(pSpeakRequest->text_to_speak, pSpeakRequest->sh, pSpeakRequest->msgParameters->sLangStr, displayID);
-        if(ttsRet == TTSErrors::ERROR_NONE)
-        {
-            LOG_DEBUG("Handling Speak Request : AudioEngine Play : displayID = %zu\n", displayID);
+        LOG_INFO(MSGID_ENGINE_HANDLER, 0,
+                "Delegate Speak Request to speech engine on display: %u",
+                displayID);
+        ttsRet = mTTSEngine[displayID]->speak(pSpeakRequest->text_to_speak,
+                pSpeakRequest->sh, pSpeakRequest->msgParameters->sLangStr,
+                displayID);
+        if (ttsRet == TTSErrors::ERROR_NONE) {
+            LOG_INFO(MSGID_ENGINE_HANDLER, 0,
+                    "Play speak request on audio engine on display: %u",
+                    displayID);
             audioRet = mAudioEngine[displayID]->play(displayID);
-        }
-        else if(ttsRet == TTSErrors::LANG_NOT_SUPPORTED)
-        {
-            LOG_DEBUG("Language Not Supported\n");
+        } else if (ttsRet == TTSErrors::LANG_NOT_SUPPORTED) {
+            LOG_INFO(MSGID_ENGINE_HANDLER, 0, "%s Language Not Supported",
+                    __FUNCTION__);
             pSpeakRequest->msgParameters->eTaskStatus = TTS_TASK_ERROR;
             pSpeakRequest->msgParameters->eLang = LANG_ERR;
-            meTTSTaskStatus = TTS_TASK_ERROR;
+            meTTSTaskStatus[displayId] = TTS_TASK_ERROR;
         }
 
-        if(audioRet)
-        {
-            if( TTS_MSG_PLAY ==  pSpeakRequest->msgParameters->eStatus )
-               pSpeakRequest->msgParameters->eStatus = TTS_MSG_DONE;
-            meTTSTaskStatus = TTS_TASK_DONE;
-        }
-        else
-        {
-            meTTSTaskStatus = TTS_TASK_ERROR;
-            LOG_DEBUG("Play Error\n");
+        if (audioRet) {
+            if (TTS_MSG_PLAY == pSpeakRequest->msgParameters->eStatus)
+                pSpeakRequest->msgParameters->eStatus = TTS_MSG_DONE;
+            meTTSTaskStatus[displayId] = TTS_TASK_DONE;
+        } else {
+            meTTSTaskStatus[displayId] = TTS_TASK_ERROR;
+            LOG_INFO(MSGID_ENGINE_HANDLER, 0, "Play Error %s", __FUNCTION__);
             pSpeakRequest->msgParameters->eTaskStatus = TTS_TASK_ERROR;
             pSpeakRequest->msgParameters->eStatus = TTS_MSG_ERROR;
         }
-        if(pSpeakRequest->msgParameters->bSubscribed)
-            pSpeakRequest->replyCB(pSpeakRequest->msgParameters, pSpeakRequest->message);
 
-       mRunningTTSRequest[displayId] = nullptr;
-    }
-    else if(request->getType() == STOP)
-    {
-        LOG_DEBUG("Handling Stop Request\n");
-        unsigned int displayID = 0;
-        if(nullptr != mRunningTTSRequest[displayId])
         {
-            SpeakRequest* pRunningSpeakRequest = reinterpret_cast<SpeakRequest*>(mRunningTTSRequest[displayId]->getRequest());
-            displayID = pRunningSpeakRequest->msgParameters->displayId;
-            if (displayID == displayId)
-            {
-                LOG_DEBUG("displayID && displayId are same = %zu\n", displayId);
-                pRunningSpeakRequest->msgParameters->eStatus = TTS_MSG_STOP;
-                (void)mTTSEngine[displayID]->stop(displayId);
-                (void)mAudioEngine[displayID] ->stop(displayId);
+            std::lock_guard < std::mutex > lck(mRunningInfoMutex[displayID]);
+            auto found = mSpeakRequestInfoMap.find(displayId);
+            if (found != mSpeakRequestInfoMap.end()) {
+                if (found->second.msgStatus == TTS_MSG_STOP)
+                    pSpeakRequest->msgParameters->eStatus = TTS_MSG_STOP;
             }
+        }
+
+        if (pSpeakRequest->msgParameters->bSubscribed) {
+            LOG_INFO(MSGID_ENGINE_HANDLER, 0, "%s notify speak update",
+                    __FUNCTION__);
+            pSpeakRequest->replyCB(pSpeakRequest->msgParameters,
+                    pSpeakRequest->message);
+        }
+
+        removeSpeakRequestInfo(displayID);
+    } else if (request->getType() == STOP) {
+        unsigned int displayID = 0;
+        SpeakRequestInfo info;
+        bool speakRequestFound = getSpeakRequestInfo(displayID, info);
+        if (speakRequestFound) {
+            LOG_INFO(MSGID_ENGINE_HANDLER, 0,
+                    "Stop running speak request on display: %u", displayID);
+            updateSpeakRequestInfo(displayID, TTS_MSG_STOP);
+            (void) mTTSEngine[displayID]->stop(displayID);
+            (void) mAudioEngine[displayID]->stop(displayID);
         }
     }
     return true;
@@ -168,17 +177,17 @@ void EngineHandler::loadEngine()
             mTTSEngine[displayID] = TTSEngineFactory::createTTSEngine(mTTSEngineName.asString());
             if(!mTTSEngine[displayID])
             {
-                LOG_DEBUG("TTSEngine %s %zu Not Found", mTTSEngineName.asString().c_str(), displayID);
+                LOG_DEBUG("TTSEngine %s %u Not Found", mTTSEngineName.asString().c_str(), displayID);
                 return;
             }
-            LOG_DEBUG("TTSEngine %s %zu Created", mTTSEngineName.asString().c_str(), displayID);
+            LOG_DEBUG("TTSEngine %s %u Created", mTTSEngineName.asString().c_str(), displayID);
             mAudioEngine[displayID] = AudioEngineFactory::createAudioEngine(mAudioEngineName.asString());
             if(!mAudioEngine[displayID])
             {
-                LOG_DEBUG("AudioEngine %s %zu Not Found", mAudioEngineName.asString().c_str(), displayID);
+                LOG_DEBUG("AudioEngine %s %u Not Found", mAudioEngineName.asString().c_str(), displayID);
                 return;
             }
-            LOG_DEBUG("AudioEngine %s %zu Created", mAudioEngineName.asString().c_str(), displayID);
+            LOG_DEBUG("AudioEngine %s %u Created", mAudioEngineName.asString().c_str(), displayID);
 
             // TODO: Decide if init required
             mTTSEngine[displayID]->init();
@@ -196,17 +205,13 @@ void EngineHandler::unloadEngine()
     }
 }
 
-TTSRequest* EngineHandler::getRunningSpeakRequest(unsigned int displayId)
-{
-    return mRunningTTSRequest[displayId];
-}
-
 void EngineHandler::getStatusInfo(TTSRequest* pTTSRequest, unsigned int displayId)
 {
+    LOG_INFO(MSGID_ENGINE_HANDLER, 0, "%s", __FUNCTION__);
     RequestType* pReqType =  pTTSRequest->getRequest();
     GetStatusRequest* pgetStatusRequest = reinterpret_cast<GetStatusRequest*>(pReqType);
-    pgetStatusRequest->pTTSStatus->status =  GET_TASK_STATUS_TEXT(meTTSTaskStatus);
-    pgetStatusRequest->pTTSStatus->ttsLanguageStr = mCurrentLanguage;
+    pgetStatusRequest->pTTSStatus->status =  GET_TASK_STATUS_TEXT(meTTSTaskStatus[displayId]);
+    pgetStatusRequest->pTTSStatus->ttsLanguageStr = mCurrentLanguage[displayId];
 
     pgetStatusRequest->pTTSStatus->pitch = mTTSEngine[displayId]->getPitch();
     pgetStatusRequest->pTTSStatus->speechRate = mTTSEngine[displayId]->getSpeakRate();
@@ -214,7 +219,53 @@ void EngineHandler::getStatusInfo(TTSRequest* pTTSRequest, unsigned int displayI
 
 void EngineHandler::getLanguages(TTSRequest* pTTSRequest, unsigned int displayId)
 {
+    LOG_INFO(MSGID_ENGINE_HANDLER, 0, "%s", __FUNCTION__);
      RequestType* ptrRequestType = pTTSRequest->getRequest();
      GetLanguageRequest* ptrGetLanguageRequest = reinterpret_cast<GetLanguageRequest*>(ptrRequestType);
      mTTSEngine[displayId]->getSupportedLanguages(ptrGetLanguageRequest->vecLanguages, displayId);
+}
+
+void EngineHandler::saveSpeakRequestInfo(SpeakRequest* request,
+        unsigned int displayId) {
+    LOG_INFO(MSGID_ENGINE_HANDLER, 0, "%s", __FUNCTION__);
+    std::lock_guard<std::mutex> lck (mRunningInfoMutex[displayId]);
+    SpeakRequestInfo info;
+    info.displayId = displayId;
+    info.appId = request->msgParameters->sAppID;
+    info.msgId = request->msgParameters->sMsgID;
+    info.msgStatus = TTS_MSG_PLAY;
+    mSpeakRequestInfoMap.insert({ displayId, info });
+}
+bool EngineHandler::getSpeakRequestInfo(unsigned int displayId, SpeakRequestInfo& info) {
+    LOG_INFO(MSGID_ENGINE_HANDLER, 0, "%s", __FUNCTION__);
+    std::lock_guard<std::mutex> lck (mRunningInfoMutex[displayId]);
+    auto found = mSpeakRequestInfoMap.find(displayId);
+    if(found != mSpeakRequestInfoMap.end()) {
+        info.displayId = found->second.displayId;
+        info.appId = found->second.appId;
+        info.msgId = found->second.msgId;
+        info.msgStatus = found->second.msgStatus;
+        LOG_INFO(MSGID_ENGINE_HANDLER, 0, "%s return found request", __FUNCTION__);
+        return true;
+    }
+    return false;
+
+}
+void EngineHandler::updateSpeakRequestInfo(unsigned int displayId,
+        MsgStatus_t msgStatus) {
+    LOG_INFO(MSGID_ENGINE_HANDLER, 0, "%s", __FUNCTION__);
+    std::lock_guard < std::mutex > lck(mRunningInfoMutex[displayId]);
+    auto found = mSpeakRequestInfoMap.find(displayId);
+    if (found != mSpeakRequestInfoMap.end()) {
+        found->second.msgStatus = msgStatus;
+    }
+}
+
+void EngineHandler::removeSpeakRequestInfo(unsigned int displayId) {
+    LOG_INFO(MSGID_ENGINE_HANDLER, 0, "%s", __FUNCTION__);
+    std::lock_guard < std::mutex > lck(mRunningInfoMutex[displayId]);
+    auto found = mSpeakRequestInfoMap.find(displayId);
+    if (found != mSpeakRequestInfoMap.end()) {
+        mSpeakRequestInfoMap.erase(found);
+    }
 }

@@ -19,66 +19,63 @@
 #include <TTSLog.h>
 #include <TTSRequest.h>
 
-TTSRequest::TTSRequest(RequestType *reqType, std::shared_ptr<EngineHandler> engineHandler)
-        : mReqType(reqType), mEngineHandler(engineHandler)
-{
+TTSRequest::TTSRequest(RequestType *reqType,
+        std::shared_ptr<EngineHandler> engineHandler) :
+        mReqType(reqType), mEngineHandler(engineHandler) {
 
+    LOG_INFO(MSGID_TTS_REQUEST, 0, "%s", __FUNCTION__);
 }
 
 TTSRequest::~TTSRequest()
 {
-    if(mReqType == NULL){
+    LOG_INFO(MSGID_TTS_REQUEST, 0, "%s", __FUNCTION__);
+    if (mReqType == NULL) {
         return;
     }
-    if (mReqType->requestType == SPEAK)
-    {
-       SpeakRequest* ptrSpeakRequest = reinterpret_cast<SpeakRequest*>(mReqType);
-       if(ptrSpeakRequest->msgParameters){
-           delete ptrSpeakRequest->msgParameters;
-           ptrSpeakRequest->msgParameters = nullptr;
-       }
-       delete ptrSpeakRequest;
-    }
-    else if(mReqType->requestType == STOP)
-    {
-        StopRequest* ptrStopRequest = reinterpret_cast<StopRequest*>(mReqType);
+    if (mReqType->requestType == SPEAK) {
+        SpeakRequest *ptrSpeakRequest =
+                reinterpret_cast<SpeakRequest*>(mReqType);
+        if (ptrSpeakRequest->msgParameters) {
+            delete ptrSpeakRequest->msgParameters;
+            ptrSpeakRequest->msgParameters = nullptr;
+        }
+        delete ptrSpeakRequest;
+    } else if (mReqType->requestType == STOP) {
+        StopRequest *ptrStopRequest = reinterpret_cast<StopRequest*>(mReqType);
         delete ptrStopRequest;
-    }
-    else if(mReqType->requestType == GET_LANGUAGES)
-    {
-        GetLanguageRequest* ptrGetLanguageRequest = reinterpret_cast<GetLanguageRequest*>(mReqType);
+    } else if (mReqType->requestType == GET_LANGUAGES) {
+        GetLanguageRequest *ptrGetLanguageRequest =
+                reinterpret_cast<GetLanguageRequest*>(mReqType);
         ptrGetLanguageRequest->vecLanguages.clear();
         delete ptrGetLanguageRequest;
-    }else if(mReqType->requestType == GET_STATUS){
+    } else if (mReqType->requestType == GET_STATUS) {
         LOG_DEBUG("For Stop Memory Leak handled Properly");
-    }else{
-        LOG_WARNING(MSGID_TTS_ERROR, 0, "Unhandled Request Type %d, See for memory Leak", mReqType->requestType);
+    } else {
+        LOG_WARNING(MSGID_TTS_ERROR, 0,
+                "Unhandled Request Type %d, See for memory Leak",
+                mReqType->requestType);
         delete mReqType;
     }
-    mReqType = nullptr;
 }
 
 bool TTSRequest::execute()
 {
     LOG_TRACE("Entering function %s", __FUNCTION__);
 
-    LOG_DEBUG("Executing Request: %d", mReqType->requestType);
     unsigned int displayId = 0;
-    if (SPEAK == mReqType->requestType)
-    {
-        SpeakRequest* ptrSpeakRequest = reinterpret_cast<SpeakRequest*>(mReqType);
+    auto requestType = mReqType->requestType;
+    if (SPEAK == requestType) {
+        SpeakRequest *ptrSpeakRequest =
+                reinterpret_cast<SpeakRequest*>(mReqType);
         displayId = ptrSpeakRequest->msgParameters->displayId;
-        LOG_DEBUG("TTSRequest::execute : SPEAK displayId = %zu", displayId);
-    }
-    else if (STOP == mReqType->requestType)
-    {
-        StopRequest* ptrStopRequest = reinterpret_cast<StopRequest*>(mReqType);
+    } else if (STOP == requestType) {
+        StopRequest *ptrStopRequest = reinterpret_cast<StopRequest*>(mReqType);
         displayId = ptrStopRequest->displayId;
-        LOG_DEBUG("TTSRequest::execute : STOP displayId = %zu", displayId);
     }
-    LOG_DEBUG("TTSRequest : displayId = %zu", displayId);
+    LOG_INFO(MSGID_TTS_REQUEST, 0, "%s request %d on display: %d", __FUNCTION__,
+            requestType, displayId);
     bool exeStatus = mEngineHandler->handleRequest(this, displayId);
-    LOG_DEBUG("Executing Request: %d exeStatus:%d", mReqType->requestType ,exeStatus);
+    LOG_DEBUG("Executing Request: %d exeStatus:%d", requestType, exeStatus);
     return exeStatus;
 }
 

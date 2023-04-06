@@ -33,19 +33,19 @@ LSHandle* TTSLunaService::lsHandle = nullptr;
 TTSLunaService::TTSLunaService() :
         LS::Handle(LS::registerService(service_name.c_str())) {
     registerService();
-    LOG_DEBUG("TTSLunaService::TTSLunaService : Function Starting");
+    LOG_INFO(MSGID_LUNA_SERVICE, 0, "%s", __FUNCTION__);
 }
 
 void TTSLunaService::init() {
     TTSLunaService::lsHandle = this->get();
     mEngineHandler = std::make_shared<EngineHandler>();
     mRequestHandler = new (std::nothrow) RequestHandler(mEngineHandler);
-    if(mRequestHandler)
+    if (mRequestHandler)
         mRequestHandler->start();
 }
 
-TTSLunaService::~TTSLunaService()
-{
+TTSLunaService::~TTSLunaService() {
+    LOG_INFO(MSGID_LUNA_SERVICE, 0, "%s", __FUNCTION__);
     StatusHandler::GetInstance()->Unregister(this);
     mRequestHandler->stop();
     delete mRequestHandler;
@@ -78,6 +78,7 @@ void TTSLunaService::registerService()
 bool TTSLunaService::speak(LSMessage &message)
 {
     LOG_TRACE("Entering function %s", __FUNCTION__);
+    LOG_INFO(MSGID_LUNA_SERVICE, 0, "%s", __FUNCTION__);
 
     LS::Message request(&message);
     pbnjson::JValue requestObj;
@@ -204,6 +205,8 @@ bool TTSLunaService::speakVKB(LSMessage &message)
 
 bool TTSLunaService::stop(LSMessage &message)
 {
+   LOG_INFO(MSGID_LUNA_SERVICE, 0, "%s", __FUNCTION__);
+
    LS::Message request(&message);
    std::string payload;
    bool retVal = false;
@@ -285,6 +288,8 @@ bool TTSLunaService::setAudioGuidanceOnOff(LSMessage &message)
 bool TTSLunaService::getAvailableLanguages(LSMessage &message)
 {
     LOG_TRACE("Entering function %s", __FUNCTION__);
+
+    LOG_INFO(MSGID_LUNA_SERVICE, 0, "%s", __FUNCTION__);
 
     LS::Message request(&message);
     std::string payload;
@@ -378,6 +383,7 @@ bool TTSLunaService::getAvailableLanguages(LSMessage &message)
 bool TTSLunaService::getStatus(LSMessage &message)
 {
     LOG_TRACE("Entering function %s", __FUNCTION__);
+    LOG_INFO(MSGID_LUNA_SERVICE, 0, "%s", __FUNCTION__);
 
     LS::Message request(&message);
     pbnjson::JValue requestObj;
@@ -651,6 +657,7 @@ bool TTSLunaService::addSubscription(LSHandle *sh, LSMessage *message, std::stri
 }
 void TTSLunaService::update(Parameters* paramList, LS::Message &message)
 {
+    LOG_INFO(MSGID_LUNA_SERVICE, 0, "%s", __FUNCTION__);
     LOG_DEBUG(" TTSLunaService::update entry\n");
     responseCallback(paramList,message);
 }

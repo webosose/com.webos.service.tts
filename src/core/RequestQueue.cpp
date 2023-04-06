@@ -44,10 +44,14 @@ void RequestQueue::addRequest(Request* request)
 {
     LOG_TRACE("Entering function %s", __FUNCTION__);
 
-    LOG_DEBUG("%s New request added to queue :%d\n", mName.c_str(), request->getType());
+    LOG_DEBUG("%s New request added to queue :%d\n", mName.c_str(),
+            request->getType());
     {
-        std::lock_guard<std::mutex> lock(mMutex);
+        std::lock_guard < std::mutex > lock(mMutex);
         mRequestQueue.push_back(request);
+        LOG_INFO(MSGID_REQUEST_QUEUE, 0,
+                "%s Name: %s new request added, queue size: %d", __FUNCTION__,
+                mName.c_str(), (int )mRequestQueue.size());
     }
     mCondVar.notify_one();
 }
@@ -59,30 +63,38 @@ void RequestQueue::dispatchHandler()
     std::unique_lock < std::mutex > lock(mMutex);
 
     do {
-        LOG_DEBUG("%s Waiting for request\n", mName.c_str());
+        LOG_INFO(MSGID_REQUEST_QUEUE, 0,
+                "%s Name: %s Waiting for request.. queue size: %d",
+                __FUNCTION__, mName.c_str(), (int )mRequestQueue.size());
         mCondVar.wait(lock, [this] {
             return (mRequestQueue.size() || mQuit);
         });
 
         if (mRequestQueue.size() && !mQuit) {
-            Request* op = std::move(mRequestQueue.front());
-            LOG_DEBUG("%sProcessing request %d\n", mName.c_str(), op->getType());
-            popFront();
+            Request *op = mRequestQueue.front();
+            LOG_INFO(MSGID_REQUEST_QUEUE, 0,
+                    "%s Name: %s, processing %d request", __FUNCTION__,
+                    mName.c_str(), op->getType());
+            mRequestQueue.erase(mRequestQueue.begin());
             lock.unlock();
 
-            std::future<bool> fut = std::async(std::launch::async, [&op]() {return op->execute();});
+            std::future<bool> fut = std::async(std::launch::async, [&op]() {
+                return op->execute();
+            });
             bool ret = fut.get();
-            LOG_DEBUG("%s Executed Request %d status :%d\n", mName.c_str(), op->getType(), ret);
+            LOG_INFO(MSGID_REQUEST_QUEUE, 0,
+                    "%s queue: %s Executed Request status :%d  queuesize: %d\n",
+                    __FUNCTION__, mName.c_str(), ret,
+                    (int )mRequestQueue.size());
             delete op;
-            op = nullptr;
             lock.lock();
-
         }
     } while (!mQuit);
 
-    LOG_DEBUG("%s Dispatcher thread done\n", mName.c_str());
-
+    LOG_INFO(MSGID_REQUEST_QUEUE, 0, "%s dispatcher thread %s exiting..",
+            __FUNCTION__, mName.c_str());
 }
+
 void RequestQueue::start()
 {
     LOG_TRACE("Entering function %s", __FUNCTION__);
@@ -110,16 +122,11 @@ void RequestQueue::stop()
     }
 }
 
-void RequestQueue::popFront()
-{
-    LOG_TRACE("Entering function %s", __FUNCTION__);
-    if (!mRequestQueue.empty()){
-       (void)(mRequestQueue.erase(mRequestQueue.begin()));
-    }
-}
-
 bool RequestQueue::removeRequest(std::string sAppID, std::string sMsgID)
 {
+    LOG_INFO(MSGID_REQUEST_QUEUE, 0, "%s Name: %s sAppID: %s sMsgID: %s\n",
+            __FUNCTION__, mName.c_str(), sAppID.c_str(), sMsgID.c_str());
+
     bool result = true;
 
     if (sMsgID.empty() && sAppID.empty()) {
@@ -128,6 +135,7 @@ bool RequestQueue::removeRequest(std::string sAppID, std::string sMsgID)
     }
 
     result = false;
+    std::lock_guard < std::mutex > lock(mMutex);
     std::vector<Request*>::iterator it = mRequestQueue.begin();
 
     while (it != mRequestQueue.end()) {
@@ -139,19 +147,23 @@ bool RequestQueue::removeRequest(std::string sAppID, std::string sMsgID)
         std::string QueueMsgID = ptrSpeakRequest->msgParameters->sMsgID;
 
         if (!sMsgID.empty() && (QueueMsgID.compare(sMsgID) == 0)) {
-            std::lock_guard < std::mutex > lock(mMutex);
             {
                 setRequestStatus(ttsRequest);
                 it = mRequestQueue.erase(it);
+                LOG_INFO(MSGID_REQUEST_QUEUE, 0,
+                        "%s Name: %s deleting tts request ", __FUNCTION__,
+                        mName.c_str());
                 delete ttsRequest;
                 result = true;
             }
             break; //msgID is unique
         } else if (QueueAppID.compare(sAppID) == 0) {
-            std::lock_guard < std::mutex > lock(mMutex);
             {
                 setRequestStatus(ttsRequest);
                 it = mRequestQueue.erase(it);
+                LOG_INFO(MSGID_REQUEST_QUEUE, 0,
+                        "%s Name: %s deleting tts request ", __FUNCTION__,
+                        mName.c_str());
                 delete ttsRequest;
                 result = true;
             }
@@ -164,22 +176,26 @@ bool RequestQueue::removeRequest(std::string sAppID, std::string sMsgID)
 
 void RequestQueue::clearQueue()
 {
-    LOG_TRACE("Entering function %s", __FUNCTION__);
+    LOG_INFO(MSGID_REQUEST_QUEUE, 0, "%s Name: %s", __FUNCTION__,
+            mName.c_str());
+
     std::lock_guard < std::mutex > lock(mMutex);
     std::vector<Request*>::iterator it = mRequestQueue.begin();
     while (it != mRequestQueue.end()) {
         Request *ttsRequest = *it;
         setRequestStatus(ttsRequest);
         it = mRequestQueue.erase(it);
+        LOG_INFO(MSGID_REQUEST_QUEUE, 0, "%s Name: %s deleting tts request ",
+                __FUNCTION__, mName.c_str());
         delete ttsRequest;
         ttsRequest = nullptr;
     }
-    LOG_DEBUG("RequestQueue::clearQueue : Cleared request from mRequestQueue");
 }
 
 void RequestQueue::setRequestStatus(Request* pRequest)
 {
     SpeakRequest* ptrSpeakRequest = reinterpret_cast<SpeakRequest*>(pRequest->getRequest());
     ptrSpeakRequest->msgParameters->eStatus = TTS_MSG_CANCEL;
+    LOG_INFO(MSGID_REQUEST_QUEUE, 0, "%s queue: %s Notify request status ", __FUNCTION__, mName.c_str());
     StatusHandler::GetInstance()->Notify(ptrSpeakRequest->msgParameters, ptrSpeakRequest->message);
 }

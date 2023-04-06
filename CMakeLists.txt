@@ -1,4 +1,4 @@
-# Copyright (c) 2018-2019 LG Electronics, Inc.
+# Copyright (c) 2018-2023 LG Electronics, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -73,7 +73,7 @@ webos_add_compiler_flags(ALL ${PBNJSON_CPP_CFLAGS_OTHER})
 if (USE_PMLOG)
     pkg_check_modules(PMLOGLIB REQUIRED PmLogLib)
     include_directories(${PMLOGLIB_INCLUDE_DIRS})
-    webos_add_compiler_flags(ALL ${PMLOGLIB_CFLAGS_OTHER})
+    webos_add_compiler_flags(ALL ${PMLOGLIB_CFLAGS_OTHER} -DUSE_PMLOG)
 endif()
 
 include_directories(src/include)
