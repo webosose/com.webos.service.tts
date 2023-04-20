@@ -118,15 +118,14 @@ bool EngineHandler::handleRequest(TTSRequest* request, unsigned int displayId)
 
         removeSpeakRequestInfo(displayID);
     } else if (request->getType() == STOP) {
-        unsigned int displayID = 0;
         SpeakRequestInfo info;
-        bool speakRequestFound = getSpeakRequestInfo(displayID, info);
+        bool speakRequestFound = getSpeakRequestInfo(displayId, info);
         if (speakRequestFound) {
             LOG_INFO(MSGID_ENGINE_HANDLER, 0,
-                    "Stop running speak request on display: %u", displayID);
-            updateSpeakRequestInfo(displayID, TTS_MSG_STOP);
-            (void) mTTSEngine[displayID]->stop(displayID);
-            (void) mAudioEngine[displayID]->stop(displayID);
+                    "Stop running speak request on display: %u", displayId);
+            updateSpeakRequestInfo(displayId, TTS_MSG_STOP);
+            (void) mTTSEngine[displayId]->stop(displayId);
+            (void) mAudioEngine[displayId]->stop(displayId);
         }
     }
     return true;
