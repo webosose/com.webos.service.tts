@@ -60,7 +60,8 @@ void RequestQueue::dispatchHandler()
 {
     LOG_TRACE("Entering function %s", __FUNCTION__);
 
-    std::unique_lock < std::mutex > lock(mMutex);
+    std::unique_lock < std::mutex > lock(mMutex, std::defer_lock);
+    lock.lock();
 
     do {
         LOG_INFO(MSGID_REQUEST_QUEUE, 0,
