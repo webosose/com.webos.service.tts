@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2023 LG Electronics, Inc.
+// Copyright (c) 2018-2024 LG Electronics, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -34,12 +34,9 @@ public:
     virtual ~TTSLunaService();
     void init();
     bool speak(LSMessage &message);
-    bool speakVKB(LSMessage &message);
     bool stop(LSMessage &message);
-    bool setAudioGuidanceOnOff(LSMessage &message);
     bool getAvailableLanguages(LSMessage &message);
     bool getStatus(LSMessage &message);
-    bool msgFeedback(LSMessage &message);
     bool setParameters(LSMessage &message);
 
 private :

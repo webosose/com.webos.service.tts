@@ -1,5 +1,4 @@
 {
     "allowedNames": ["com.webos.service.tts"],
-    "tts.operation": ["dev"],
-    "tts.managment" : ["oem"]
+    "tts.operation": ["dev"]
 }

@@ -4,10 +4,5 @@
         "com.webos.service.tts/stop",
         "com.webos.service.tts/getStatus",
         "com.webos.service.tts/getAvailableLanguages"
-    ],
-    "tts.managment": [
-        "com.webos.service.tts/speakVKB",
-        "com.webos.service.tts/msgFeedback",
-        "com.webos.service.tts/setAudioGuidanceOnOff"
     ]
 }
