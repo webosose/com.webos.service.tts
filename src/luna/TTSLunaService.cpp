@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2023 LG Electronics, Inc.
+// Copyright (c) 2018-2024 LG Electronics, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -56,12 +56,9 @@ void TTSLunaService::registerService()
     LOG_DEBUG("Register Service\n");
     LS_CREATE_CATEGORY_BEGIN(TTSLunaService, rootAPI)
     LS_CATEGORY_METHOD(speak)
-    LS_CATEGORY_METHOD(speakVKB)
     LS_CATEGORY_METHOD(stop)
-    LS_CATEGORY_METHOD(setAudioGuidanceOnOff)
     LS_CATEGORY_METHOD(getAvailableLanguages)
     LS_CATEGORY_METHOD(getStatus)
-    LS_CATEGORY_METHOD(msgFeedback)
     LS_CREATE_CATEGORY_END
 
     try {
@@ -190,19 +187,6 @@ bool TTSLunaService::speak(LSMessage &message)
     return true;
 }
 
-bool TTSLunaService::speakVKB(LSMessage &message)
-{
-    LS::Message request(&message);
-    const std::string errorStr = TTSErrors::getTTSErrorString(TTSErrors::TTS_ERROR_NOT_SUPPORTED);
-    try {
-        LSUtils::respondWithError(request, errorStr, TTSErrorCodes::TTS_ERROR_NOT_SUPPORTED);
-    } catch (LS::Error &lunaError) {
-        LOG_ERROR(MSGID_LUNA_ERROR_RESPONSE, 0,
-                "Exception on Luna API speakVKB error response: %s", lunaError.what());
-    }
-    return true;
-}
-
 bool TTSLunaService::stop(LSMessage &message)
 {
    LOG_INFO(MSGID_LUNA_SERVICE, 0, "%s", __FUNCTION__);
@@ -269,19 +253,6 @@ bool TTSLunaService::stop(LSMessage &message)
 
     LSUtils::generatePayload(responseObj, payload);
     request.respond(payload.c_str());
-    return true;
-}
-
-bool TTSLunaService::setAudioGuidanceOnOff(LSMessage &message)
-{
-    LS::Message request(&message);
-    const std::string errorStr = TTSErrors::getTTSErrorString(TTSErrors::TTS_ERROR_NOT_SUPPORTED);
-    try {
-        LSUtils::respondWithError(request, errorStr, TTSErrorCodes::TTS_ERROR_NOT_SUPPORTED);
-    } catch (LS::Error &lunaError) {
-        LOG_ERROR(MSGID_LUNA_ERROR_RESPONSE, 0,
-                "Exception on Luna API setAudioGuidanceOnOff error response: %s", lunaError.what());
-    }
     return true;
 }
 
@@ -499,19 +470,6 @@ bool TTSLunaService::getStatus(LSMessage &message)
     LOG_DEBUG("End of getStatus Request\n");
     delete ptrTTSRequest;
     ptrTTSRequest=nullptr;
-    return true;
-}
-
-bool TTSLunaService::msgFeedback(LSMessage &message)
-{
-    LS::Message request(&message);
-    const std::string errorStr = TTSErrors::getTTSErrorString(TTSErrors::TTS_ERROR_NOT_SUPPORTED);
-    try {
-        LSUtils::respondWithError(request, errorStr, TTSErrorCodes::TTS_ERROR_NOT_SUPPORTED);
-    } catch (LS::Error &lunaError) {
-        LOG_ERROR(MSGID_LUNA_ERROR_RESPONSE, 0,
-                "Exception on Luna API msgFeedback error response: %s", lunaError.what());
-    }
     return true;
 }
 
