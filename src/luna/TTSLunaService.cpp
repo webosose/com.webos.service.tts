@@ -220,8 +220,8 @@ bool TTSLunaService::stop(LSMessage &message)
    if(stopRequest == nullptr){
        return true;
    }
-   stopRequest->sAppID = applicationID;
-   stopRequest->sMsgID = MessageID;
+   stopRequest->sAppID = std::move(applicationID);
+   stopRequest->sMsgID = std::move(MessageID);
    stopRequest->fadeOut = bfadeOut;
    stopRequest->displayId = displayId ;
    TTSRequest* ttsRequest = new (std::nothrow) TTSRequest(reinterpret_cast<RequestType*>(stopRequest), mEngineHandler);
@@ -716,7 +716,7 @@ bool TTSLunaService::handle_getSettings_callback(LSHandle *sh, LSMessage *messag
         }
     }
     if(pgetStatusRequest->pTTSStatus)
-        pgetStatusRequest->pTTSStatus->ttsMenuLangStr = MenuLanghStr ;
+        pgetStatusRequest->pTTSStatus->ttsMenuLangStr = std::move(MenuLanghStr) ;
 
     finalize_getstatus_request(pgetStatusRequest, !pgetStatusRequest->hasError());
     LSMessageUnref(message);

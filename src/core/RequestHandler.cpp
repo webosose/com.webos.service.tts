@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2023 LG Electronics, Inc.
+// Copyright (c) 2018-2024 LG Electronics, Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -87,11 +87,11 @@ bool RequestHandler::sendRequest(TTSRequest *request, unsigned int displayId) {
                 delete request;
             }
             if (displayId)
-                queueRet = mSpeakRequestQueueDisplay2.removeRequest(stopAppID,
-                        stopMsgID);
+                queueRet = mSpeakRequestQueueDisplay2.removeRequest(std::move(stopAppID),
+                        std::move(stopMsgID));
             else
-                queueRet = mSpeakRequestQueueDisplay1.removeRequest(stopAppID,
-                        stopMsgID);
+                queueRet = mSpeakRequestQueueDisplay1.removeRequest(std::move(stopAppID),
+                        std::move(stopMsgID));
 
             return (runningRet) ? runningRet : queueRet;
         }
